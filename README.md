@@ -1,37 +1,39 @@
-# ZKP Zebra – Számlakezelő szerver
+# ZKP Zebra – Invoice Tracking Server
 
-Belső webes rendszer Zebra nyomtatókhoz. Az Android app által nyomtatott számlaszámokat rögzíti, és egy webes felületen teszi lehetővé a státuszkövetést (Nyomtatva → Feldolgozás alatt → Elpakolható → Elpakolva → Kiadva).
+Internal web system for Zebra label printers. Records invoice numbers printed by the Android app and provides a web interface for status tracking.
 
----
-
-## Rendszer áttekintése
-
-```
-Android app  ──→  Node.js szerver (port 3000)  ←──  Böngésző (web UI)
-                        │
-                   SQLite adatbázis
-```
-
-A szerver elé Nginx Proxy Manager kerül, amely a külső domain-t (pl. DuckDNS) továbbítja a belső portra, és HTTPS-t biztosít.
+**Status workflow:** Printed → Processing → Ready to pack → Packed → Issued
 
 ---
 
-## Telepítés
+## System overview
 
-### 1. Node.js telepítése
+```
+Android app  ──→  Node.js server (port 3000)  ←──  Browser (web UI)
+                          │
+                    SQLite database
+```
+
+An Nginx Proxy Manager sits in front of the server, forwarding an external domain to the internal port and providing HTTPS.
+
+---
+
+## Installation
+
+### 1. Install Node.js
 
 ```bash
 curl -fsSL https://deb.nodesource.com/setup_20.x | bash -
 apt-get install -y nodejs
 ```
 
-Ellenőrzés:
+Verify:
 ```bash
 node --version   # v20.x.x
 npm --version    # 10.x.x
 ```
 
-### 2. Szerver fájlok letöltése
+### 2. Download server files
 
 ```bash
 mkdir -p /opt/zebra/server
@@ -39,31 +41,23 @@ cd /opt/zebra/server
 git clone https://github.com/Kruscy/zebra-server.git .
 ```
 
-### 3. Függőségek telepítése
+### 3. Install dependencies
 
 ```bash
 npm install
 ```
 
-### 4. Jelszó beállítása (opcionális)
-
-A szerver első indításkor automatikusan létrehozza az alapértelmezett felhasználót:
-- **Felhasználónév:** `zkpzebra`
-- **Jelszó:** `admin123`
-
-A jelszót a webes felületen belépés után meg lehet változtatni (jobb felső sarok → Jelszóváltás).
-
-### 5. Systemd service létrehozása (automatikus indítás)
+### 4. Create systemd service (auto-start)
 
 ```bash
 nano /etc/systemd/system/zebra-server.service
 ```
 
-Tartalom:
+Contents:
 
 ```ini
 [Unit]
-Description=Zebra Számlakezelő szerver
+Description=Zebra Invoice Server
 After=network.target
 
 [Service]
@@ -74,15 +68,12 @@ ExecStart=/usr/bin/node server.js
 Restart=on-failure
 RestartSec=5
 Environment=NODE_ENV=production PORT=3000
-Environment=SESSION_SECRET=ide-irj-egy-titkos-szot
-
-[Install]
-WantedBy=multi-user.target
+Environment=SESSION_SECRET=replace-with-a-random-secret
 ```
 
-> **Fontos:** a `SESSION_SECRET` értékét cseréld le egy véletlenszerű, hosszú szövegre (pl. `openssl rand -hex 32` kimenetére).
+> **Important:** Replace `SESSION_SECRET` with a long random string (e.g. output of `openssl rand -hex 32`).
 
-Service aktiválása:
+Enable and start:
 
 ```bash
 systemctl daemon-reload
@@ -91,19 +82,27 @@ systemctl start zebra-server
 systemctl status zebra-server
 ```
 
-### 6. Nginx Proxy Manager beállítása
+### 5. Default login credentials
 
-Az NPM-ben hozz létre egy új Proxy Host-ot:
+On first start the server automatically creates a default user:
+- **Username:** `zkpzebra`
+- **Password:** `admin123`
 
-| Mező | Érték |
-|------|-------|
-| Domain Names | `zkpzebra.duckdns.org` (vagy saját domain) |
+Change the password after login via the top-right menu → Change password.
+
+### 6. Nginx Proxy Manager setup
+
+Create a new Proxy Host in NPM:
+
+| Field | Value |
+|-------|-------|
+| Domain Names | your domain |
 | Scheme | `http` |
-| Forward Hostname | a szerver belső IP-je |
+| Forward Hostname | server's internal IP |
 | Forward Port | `3000` |
-| Websockets Support | be |
+| Websockets Support | enabled |
 
-**SSL:** Let's Encrypt tanúsítvány kérése az NPM-ben (Force SSL bekapcsolva).
+**SSL:** Request a Let's Encrypt certificate in NPM (Force SSL enabled).
 
 **Advanced tab – custom Nginx config:**
 
@@ -115,34 +114,9 @@ proxy_next_upstream error timeout http_502 http_503;
 proxy_next_upstream_tries 3;
 ```
 
-### 7. DuckDNS beállítása (dinamikus DNS)
-
-Ha a szerver otthoni/irodai interneten van és az IP változhat:
-
-```bash
-mkdir -p ~/duckdns
-nano ~/duckdns/duck.sh
-```
-
-Tartalom:
-```bash
-echo url="https://www.duckdns.org/update?domains=DOMAIN&token=TOKEN&ip=" | curl -k -o ~/duckdns/duck.log -K -
-```
-
-```bash
-chmod +x ~/duckdns/duck.sh
-```
-
-Crontab bejegyzés (5 percenként frissít):
-```bash
-crontab -e
-# hozzáadni:
-*/5 * * * * ~/duckdns/duck.sh >/dev/null 2>&1
-```
-
 ---
 
-## Frissítés
+## Updating
 
 ```bash
 cd /opt/zebra/server
@@ -153,22 +127,22 @@ systemctl restart zebra-server
 
 ---
 
-## Portok és útvonalak
+## API endpoints
 
-| Végpont | Auth | Leírás |
-|---------|------|--------|
-| `GET /` | – | Web felület (login oldal) |
-| `POST /api/login` | – | Bejelentkezés |
-| `POST /api/invoices` | – | Számla rögzítése (Android app) |
-| `GET /api/invoices/:num/status` | – | Státusz lekérdezése (Android app) |
-| `GET /api/invoices` | ✓ | Összes számla listája |
-| `PUT /api/invoices/:id/status` | ✓ | Státusz módosítása |
-| `DELETE /api/invoices/:id` | ✓ | Számla törlése |
-| `GET /api/events` | ✓ | SSE real-time frissítés |
-| `GET /api/health` | – | Szerver állapot |
+| Endpoint | Auth | Description |
+|----------|------|-------------|
+| `GET /` | – | Web UI (login page) |
+| `POST /api/login` | – | Login |
+| `POST /api/invoices` | – | Register invoice (Android app) |
+| `GET /api/invoices/:num/status` | – | Get invoice status (Android app) |
+| `GET /api/invoices` | ✓ | List all invoices |
+| `PUT /api/invoices/:id/status` | ✓ | Update invoice status |
+| `DELETE /api/invoices/:id` | ✓ | Delete invoice |
+| `GET /api/events` | ✓ | SSE real-time updates |
+| `GET /api/health` | – | Server health check |
 
 ---
 
-## Fejlesztő
+## Author
 
-Czebeczauer György egyéni vállalkozó – czebeczauer@gmail.com
+Czebeczauer György – czebeczauer@gmail.com
