@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ZKP Zebra</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Segoe UI',Arial,sans-serif;background:#f0f2f5;color:#1a1a2e}
+
+/* Login */
+#loginPage{display:flex;align-items:center;justify-content:center;min-height:100vh;background:#1a1a2e}
+.login-box{background:white;padding:40px;border-radius:14px;width:100%;max-width:380px;box-shadow:0 8px 40px rgba(0,0,0,0.35)}
+.login-logo{text-align:center;margin-bottom:10px}
+.login-logo svg{border-radius:20px;box-shadow:0 4px 18px rgba(0,0,0,0.35)}
+.login-box h1{text-align:center;font-size:1.35rem;color:#1a1a2e;margin-bottom:4px}
+.login-sub{text-align:center;color:#888;font-size:0.88rem;margin-bottom:28px}
+
+/* Forms */
+.fg{margin-bottom:16px}
+.fg label{display:block;font-size:0.83rem;font-weight:700;margin-bottom:6px;color:#444;text-transform:uppercase;letter-spacing:.04em}
+.fg input{width:100%;padding:11px 14px;border:1.5px solid #ddd;border-radius:8px;font-size:1rem;transition:border-color .2s}
+.fg input:focus{outline:none;border-color:#4361ee}
+.err{color:#ef4444;font-size:0.84rem;margin-top:10px;display:none;background:#fef2f2;padding:8px 12px;border-radius:6px;border:1px solid #fecaca}
+
+.btn{padding:10px 20px;border:none;border-radius:8px;font-size:.92rem;font-weight:700;cursor:pointer;transition:all .18s;white-space:nowrap}
+.btn-primary{background:#4361ee;color:white}.btn-primary:hover{background:#3451d1}
+.btn-danger{background:#ef4444;color:white}.btn-danger:hover{background:#dc2626}
+.btn-secondary{background:#e5e7eb;color:#374151}.btn-secondary:hover{background:#d1d5db}
+.btn-sm{padding:5px 12px;font-size:.8rem}
+.btn-full{width:100%;margin-top:16px;padding:13px}
+
+/* Header */
+#dashboard{display:none}
+header{background:#1a1a2e;color:white;padding:0 24px;display:flex;align-items:center;justify-content:space-between;height:58px;box-shadow:0 2px 10px rgba(0,0,0,.25);position:sticky;top:0;z-index:100}
+header h1{font-size:1.15rem;letter-spacing:.01em}
+.hright{display:flex;align-items:center;gap:14px}
+.huser{font-size:.88rem;opacity:.75}
+
+/* Content */
+.content{padding:24px;max-width:1500px;margin:0 auto}
+
+/* Stats */
+.stats{display:flex;flex-wrap:wrap;gap:14px;margin-bottom:22px}
+.stat{background:white;padding:14px 18px;border-radius:10px;box-shadow:0 2px 8px rgba(0,0,0,.06);flex:1;min-width:110px;cursor:pointer;transition:box-shadow .18s;border:2px solid transparent}
+.stat:hover{box-shadow:0 4px 16px rgba(0,0,0,.1)}
+.stat.active{border-color:#4361ee}
+.stat .lbl{font-size:.72rem;color:#888;text-transform:uppercase;letter-spacing:.05em;font-weight:700}
+.stat .val{font-size:2rem;font-weight:800;color:#1a1a2e;margin-top:2px;line-height:1}
+
+/* Toolbar */
+.toolbar{display:flex;flex-wrap:wrap;gap:12px;align-items:center;margin-bottom:18px}
+.sinput{padding:9px 14px;border:1.5px solid #ddd;border-radius:8px;font-size:.93rem;min-width:240px;flex:1;max-width:340px}
+.sinput:focus{outline:none;border-color:#4361ee}
+
+/* Table */
+.tbl-wrap{background:white;border-radius:12px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,.06)}
+table{width:100%;border-collapse:collapse}
+thead{background:#f8f9fa}
+th{padding:11px 16px;text-align:left;font-size:.76rem;color:#666;text-transform:uppercase;letter-spacing:.06em;border-bottom:1px solid #eee;font-weight:700}
+td{padding:11px 16px;border-bottom:1px solid #f2f2f2;font-size:.91rem;vertical-align:middle}
+tr:last-child td{border-bottom:none}
+tr:hover td{background:#f9f9fb}
+
+/* Badges */
+.badge{display:inline-block;padding:3px 10px;border-radius:12px;font-size:.75rem;font-weight:800;letter-spacing:.02em}
+.s0{background:#e5e7eb;color:#374151}
+.s1{background:#fef3c7;color:#92400e}
+.s2{background:#dbeafe;color:#1e40af}
+.s3{background:#d1fae5;color:#065f46}
+.s4{background:#ede9fe;color:#5b21b6}
+
+.inum{font-family:monospace;font-weight:700;font-size:.93rem;letter-spacing:.02em}
+.dcell{color:#999;font-size:.82rem}
+
+.sel{padding:5px 8px;border:1.5px solid #ddd;border-radius:6px;font-size:.83rem;background:white;cursor:pointer;min-width:155px}
+.sel:focus{outline:none;border-color:#4361ee}
+
+.acts{display:flex;align-items:center;gap:8px}
+
+.empty{text-align:center;padding:56px;color:#bbb}
+.empty p{font-size:1.1rem}
+
+/* Modal */
+footer{text-align:center;padding:28px 16px 18px;font-size:.78rem;color:#aaa}
+footer a{color:#aaa;text-decoration:none}
+footer a:hover{color:#4361ee}
+@media(max-width:700px){footer{font-size:.72rem;padding:20px 10px 14px}}
+
+.modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.45);display:none;align-items:center;justify-content:center;z-index:200}
+.modal-bg.open{display:flex}
+.modal{background:white;border-radius:14px;padding:32px;width:100%;max-width:400px;box-shadow:0 10px 50px rgba(0,0,0,.3)}
+.modal h2{font-size:1.15rem;margin-bottom:20px}
+.modal-btns{display:flex;gap:12px;margin-top:24px;justify-content:flex-end}
+
+@media(max-width:700px){
+  .content{padding:8px}
+  .sinput{min-width:0;max-width:none;flex:1;font-size:1rem;padding:11px 14px}
+  .stat{min-width:80px;padding:10px 12px}
+  .stat .val{font-size:1.5rem}
+  .stat .lbl{font-size:.65rem}
+  .hright{gap:6px}
+  header{padding:0 10px}
+  header h1{font-size:.95rem}
+  .huser{display:none}
+  .btn-sm{padding:7px 10px;font-size:.78rem}
+  /* Táblázat kártya nézet mobilon */
+  .tbl-wrap{background:transparent;box-shadow:none;border-radius:0}
+  table,thead,tbody,th,td,tr{display:block}
+  thead{display:none}
+  tr{background:white;border-radius:10px;margin-bottom:10px;box-shadow:0 2px 6px rgba(0,0,0,.07);padding:12px 14px}
+  td{padding:4px 0;border:none;font-size:.9rem}
+  td:before{content:attr(data-label);font-size:.72rem;font-weight:700;color:#888;text-transform:uppercase;letter-spacing:.04em;display:block;margin-bottom:2px}
+  td:first-child{font-size:1rem;margin-bottom:6px}
+  td:nth-child(3),td:nth-child(4){color:#999;font-size:.8rem}
+  .acts{flex-wrap:wrap;gap:6px;margin-top:8px}
+  .sel{width:100%;min-width:0}
+  .modal{padding:20px;margin:16px}
+  .stats{gap:8px}
+}
+</style>
+</head>
+<body>
+
+<!-- Login -->
+<div id="loginPage">
+  <div class="login-box">
+    <div class="login-logo">
+      <svg width="72" height="72" viewBox="0 0 108 108" xmlns="http://www.w3.org/2000/svg">
+        <rect width="108" height="108" rx="22" fill="#1A1A2E"/>
+        <g opacity="0.38">
+          <path fill="#FFFFFF" d="M8,48 L48,8 L68,8 L8,68 Z"/>
+          <path fill="#FFFFFF" d="M8,74 L74,8 L94,8 L8,94 Z"/>
+          <path fill="#FFFFFF" d="M6,108 L108,6 L108,26 L26,108 Z"/>
+          <path fill="#FFFFFF" d="M32,108 L108,32 L108,52 L52,108 Z"/>
+          <path fill="#FFFFFF" d="M58,108 L108,58 L108,78 L78,108 Z"/>
+        </g>
+        <path fill="#F59E0B" d="M30,33 L78,33 L78,45 L44,63 L78,63 L78,75 L30,75 L30,63 L64,45 L30,45 Z"/>
+      </svg>
+    </div>
+    <h1>ZKP Zebra</h1>
+    <p class="login-sub">Jelentkezz be a folytatáshoz</p>
+    <div class="fg"><label>Felhasználónév</label><input id="lUser" type="text" autocomplete="username" placeholder="admin"></div>
+    <div class="fg"><label>Jelszó</label><input id="lPass" type="password" autocomplete="current-password" placeholder="••••••••"></div>
+    <div class="err" id="lErr">Hibás felhasználónév vagy jelszó</div>
+    <button id="btnLogin" class="btn btn-primary btn-full">Bejelentkezés</button>
+  </div>
+</div>
+
+<!-- Dashboard -->
+<div id="dashboard">
+  <header>
+    <h1>
+      <svg width="28" height="28" viewBox="0 0 108 108" xmlns="http://www.w3.org/2000/svg" style="vertical-align:middle;margin-right:8px;border-radius:7px">
+        <rect width="108" height="108" rx="22" fill="#1A1A2E"/>
+        <g opacity="0.38">
+          <path fill="#FFFFFF" d="M8,48 L48,8 L68,8 L8,68 Z"/>
+          <path fill="#FFFFFF" d="M8,74 L74,8 L94,8 L8,94 Z"/>
+          <path fill="#FFFFFF" d="M6,108 L108,6 L108,26 L26,108 Z"/>
+          <path fill="#FFFFFF" d="M32,108 L108,32 L108,52 L52,108 Z"/>
+          <path fill="#FFFFFF" d="M58,108 L108,58 L108,78 L78,108 Z"/>
+        </g>
+        <path fill="#F59E0B" d="M30,33 L78,33 L78,45 L44,63 L78,63 L78,75 L30,75 L30,63 L64,45 L30,45 Z"/>
+      </svg>ZKP Zebra
+    </h1>
+    <div class="hright">
+      <span class="huser" id="hUser"></span>
+      <button id="btnOpenPw" class="btn btn-secondary btn-sm">Jelszóváltás</button>
+      <button id="btnLogout" class="btn btn-danger btn-sm">Kijelentkezés</button>
+    </div>
+  </header>
+  <div class="content">
+    <div class="stats" id="statsRow"></div>
+    <div class="toolbar">
+      <input type="text" class="sinput" id="search" placeholder="🔍  Számlaszám keresése…">
+    </div>
+    <div class="tbl-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Számlaszám</th>
+            <th>Státusz</th>
+            <th>Rögzítve</th>
+            <th>Módosítva</th>
+            <th>Műveletek</th>
+          </tr>
+        </thead>
+        <tbody id="tBody"></tbody>
+      </table>
+    </div>
+    <footer>Fejlesztette: <strong>Czebeczauer György</strong> egyéni vállalkozó &nbsp;·&nbsp; <a href="mailto:czebeczauer@gmail.com">czebeczauer@gmail.com</a> &nbsp;·&nbsp; v1.0 (2026)</footer>
+  </div>
+</div>
+
+<!-- Jelszóváltás modal -->
+<div class="modal-bg" id="pwModal">
+  <div class="modal">
+    <h2>Jelszó módosítása</h2>
+    <div class="fg"><label>Jelenlegi jelszó</label><input id="pwCur" type="password" placeholder="••••••••"></div>
+    <div class="fg"><label>Új jelszó</label><input id="pwNew" type="password" placeholder="••••••••"></div>
+    <div class="fg"><label>Új jelszó mégegyszer</label><input id="pwNew2" type="password" placeholder="••••••••"></div>
+    <div class="err" id="pwErr"></div>
+    <div class="modal-btns">
+      <button id="btnClosePw" class="btn btn-secondary">Mégse</button>
+      <button id="btnChangePw" class="btn btn-primary">Mentés</button>
+    </div>
+  </div>
+</div>
+
+<script src="/app.js"></script>
+</body>
+</html>
