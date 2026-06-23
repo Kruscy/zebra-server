@@ -2,12 +2,3 @@ node_modules/
 zebra.db
 .env
 
-# APK bináris
-public/ZebraPrint.apk
-
-# Android build
-android/.gradle/
-android/app/build/
-android/local.properties
-android/**/*.iml
-android/.idea/
