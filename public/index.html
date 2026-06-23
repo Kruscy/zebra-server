@@ -81,6 +81,19 @@ tr:hover td{background:#f9f9fb}
 .empty{text-align:center;padding:56px;color:#bbb}
 .empty p{font-size:1.1rem}
 
+/* APK letöltő */
+.apk-banner{background:white;border-radius:12px;box-shadow:0 2px 8px rgba(0,0,0,.06);padding:16px 20px;margin-bottom:22px;display:flex;align-items:center;justify-content:space-between;gap:14px;border-left:4px solid #4361ee}
+.apk-info{display:flex;align-items:center;gap:14px}
+.apk-icon{font-size:2rem;line-height:1}
+.apk-title{font-weight:700;font-size:1rem;color:#1a1a2e}
+.apk-sub{font-size:.8rem;color:#888;margin-top:2px}
+.btn-dl{background:#4361ee;color:white;font-size:1rem;padding:12px 22px;border-radius:10px;text-decoration:none;font-weight:700;display:inline-flex;align-items:center;gap:8px;transition:background .18s;white-space:nowrap}
+.btn-dl:hover{background:#3451d1}
+@media(max-width:700px){
+  .apk-banner{flex-direction:column;align-items:stretch;padding:16px}
+  .btn-dl{justify-content:center;padding:14px;font-size:1.05rem}
+}
+
 /* Modal */
 footer{text-align:center;padding:28px 16px 18px;font-size:.78rem;color:#aaa}
 footer a{color:#aaa;text-decoration:none}
@@ -170,6 +183,16 @@ footer a:hover{color:#4361ee}
     </div>
   </header>
   <div class="content">
+    <div class="apk-banner">
+      <div class="apk-info">
+        <span class="apk-icon">📱</span>
+        <div>
+          <div class="apk-title">ZebraPrint Android alkalmazás</div>
+          <div class="apk-sub">v1.2.2026 &nbsp;·&nbsp; Android 7.0+</div>
+        </div>
+      </div>
+      <a href="/ZebraPrint.apk" class="btn-dl" download="ZebraPrint-v1.2.2026.apk">⬇ APK letöltése</a>
+    </div>
     <div class="stats" id="statsRow"></div>
     <div class="toolbar">
       <input type="text" class="sinput" id="search" placeholder="🔍  Számlaszám keresése…">

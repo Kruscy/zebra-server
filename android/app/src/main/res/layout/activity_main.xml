@@ -1,0 +1,689 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="#F0F2F5">
+
+    <!-- ========== FŐOLDAL ========== -->
+    <LinearLayout
+        android:id="@+id/screenMain"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:orientation="vertical"
+        android:padding="16dp">
+
+        <ImageView
+            android:layout_width="90dp"
+            android:layout_height="90dp"
+            android:layout_gravity="center_horizontal"
+            android:src="@drawable/ic_logo_main"
+            android:contentDescription="Zebra logo"
+            android:paddingTop="4dp"
+            android:paddingBottom="6dp"/>
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="ZKP Zebra"
+            android:textSize="22sp"
+            android:textStyle="bold"
+            android:gravity="center"
+            android:textColor="#1A1A2E"
+            android:paddingBottom="2dp"/>
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Fejlesztette: Czebeczauer György e.v. · v1.0.2026"
+            android:textSize="11sp"
+            android:gravity="center"
+            android:textColor="#AAAAAA"
+            android:paddingBottom="12dp"/>
+
+        <EditText
+            android:id="@+id/editTopInput"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="Szkennelj vagy gépelj..."
+            android:inputType="text"
+            android:imeOptions="actionDone"
+            android:background="@drawable/input_bg"
+            android:padding="14dp"
+            android:textSize="18sp"
+            android:layout_marginBottom="8dp"/>
+
+        <TextView
+            android:id="@+id/tvTopStatus"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:padding="14dp"
+            android:textSize="17sp"
+            android:gravity="center"
+            android:lineSpacingExtra="4dp"
+            android:background="@drawable/input_bg"
+            android:visibility="gone"
+            android:layout_marginBottom="8dp"/>
+
+        <!-- Tile sor 1 -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1"
+            android:orientation="horizontal">
+
+            <Button
+                android:id="@+id/tileInvoice"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:layout_margin="6dp"
+                android:text="Számlacímke\nnyomtatása"
+                android:background="@drawable/tile_bg_blue"
+                android:textColor="#FFFFFF"
+                android:textSize="15sp"
+                android:textStyle="bold"
+                android:gravity="center"
+                android:maxLines="3"
+                android:padding="12dp"/>
+
+            <Button
+                android:id="@+id/tileQr"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:layout_margin="6dp"
+                android:text="QR kód\nnyomtatás"
+                android:background="@drawable/tile_bg_green"
+                android:textColor="#FFFFFF"
+                android:textSize="15sp"
+                android:textStyle="bold"
+                android:gravity="center"
+                android:maxLines="3"
+                android:padding="12dp"/>
+        </LinearLayout>
+
+        <!-- Tile sor 2 -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1"
+            android:orientation="horizontal">
+
+            <Button
+                android:id="@+id/tileText"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:layout_margin="6dp"
+                android:text="Egyedi szöveg\nnyomtatása"
+                android:background="@drawable/tile_bg_purple"
+                android:textColor="#FFFFFF"
+                android:textSize="15sp"
+                android:textStyle="bold"
+                android:gravity="center"
+                android:maxLines="3"
+                android:padding="12dp"/>
+
+            <Button
+                android:id="@+id/tileTest"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:layout_margin="6dp"
+                android:text="Tesztoldal\nés beigazítás"
+                android:background="@drawable/tile_bg_orange"
+                android:textColor="#FFFFFF"
+                android:textSize="15sp"
+                android:textStyle="bold"
+                android:gravity="center"
+                android:maxLines="3"
+                android:padding="12dp"/>
+        </LinearLayout>
+
+        <!-- Beállítások gomb -->
+        <Button
+            android:id="@+id/btnSettings"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center_horizontal"
+            android:text="⚙  Beállítások"
+            android:background="@null"
+            android:textColor="#888888"
+            android:textSize="13sp"
+            android:paddingTop="10dp"
+            android:paddingBottom="4dp"/>
+
+    </LinearLayout>
+
+    <!-- ========== BEÁLLÍTÁSOK ========== -->
+    <ScrollView
+        android:id="@+id/screenSettings"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:visibility="gone">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:padding="16dp">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:paddingBottom="8dp">
+
+                <Button
+                    android:id="@+id/btnBackSettings"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="← Vissza"
+                    android:background="@null"
+                    android:textColor="#4361EE"
+                    android:textSize="15sp"
+                    android:paddingStart="0dp"
+                    android:paddingEnd="12dp"/>
+
+                <TextView
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="Beállítások"
+                    android:textSize="19sp"
+                    android:textStyle="bold"
+                    android:textColor="#1A1A2E"/>
+            </LinearLayout>
+
+            <TextView style="@style/FieldLabel" android:text="Szerver URL"/>
+
+            <EditText
+                android:id="@+id/editServerUrl"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:hint="https://zkpzebra.duckdns.org"
+                android:inputType="textUri"
+                android:background="@drawable/input_bg"
+                android:padding="13dp"
+                android:textSize="15sp"
+                android:layout_marginBottom="8dp"/>
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Az app erre a címre küldi a számlaszámokat. Alapértelmezett: https://zkpzebra.duckdns.org"
+                android:textSize="12sp"
+                android:textColor="#999999"
+                android:layout_marginBottom="24dp"/>
+
+            <TextView style="@style/FieldLabel" android:text="ZQ310 nyomtató nyelve"/>
+            <RadioGroup
+                android:id="@+id/radioZqLang"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:layout_marginTop="4dp">
+
+                <RadioButton
+                    android:id="@+id/langZpl"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="ZPL"
+                    android:checked="true"
+                    android:textSize="15sp"
+                    android:layout_marginEnd="24dp"/>
+
+                <RadioButton
+                    android:id="@+id/langCpcl"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="CPCL"
+                    android:textSize="15sp"/>
+            </RadioGroup>
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Ha a ZQ310 más rendszerrel is nyomtat, válaszd a CPCL módot."
+                android:textSize="12sp"
+                android:textColor="#999999"
+                android:layout_marginBottom="16dp"/>
+
+            <CheckBox
+                android:id="@+id/checkTestMode"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Teszt mód – csak adatbázisba ment, nem nyomtat"
+                android:textSize="14sp"
+                android:textColor="#D97706"
+                android:textStyle="bold"
+                android:layout_marginBottom="16dp"/>
+
+            <Button
+                android:id="@+id/btnSaveSettings"
+                style="@style/PrintButton"
+                android:text="MENTÉS"
+                android:layout_marginTop="0dp"/>
+
+            <Button
+                android:id="@+id/btnCheckServer"
+                android:layout_width="match_parent"
+                android:layout_height="52dp"
+                android:text="SZERVER ÁLLAPOT ELLENŐRZÉSE"
+                android:background="@drawable/tile_bg_blue"
+                android:textColor="#FFFFFF"
+                android:textSize="13sp"
+                android:textStyle="bold"
+                android:layout_marginTop="10dp"/>
+
+            <TextView
+                android:id="@+id/statusSettings"
+                style="@style/StatusText"
+                android:lineSpacingExtra="4dp"/>
+
+        </LinearLayout>
+    </ScrollView>
+
+    <!-- ========== SZÁMLACÍMKE ========== -->
+    <ScrollView
+        android:id="@+id/screenInvoice"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:visibility="gone">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:padding="16dp">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:paddingBottom="8dp">
+
+                <Button
+                    android:id="@+id/btnBackInvoice"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="← Vissza"
+                    android:background="@null"
+                    android:textColor="#4361EE"
+                    android:textSize="15sp"
+                    android:paddingStart="0dp"
+                    android:paddingEnd="12dp"/>
+
+                <TextView
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="Számlacímke nyomtatása"
+                    android:textSize="19sp"
+                    android:textStyle="bold"
+                    android:textColor="#1A1A2E"/>
+            </LinearLayout>
+
+            <TextView style="@style/FieldLabel" android:text="ZQ310 nyomtató száma (1-254)"/>
+            <EditText
+                android:id="@+id/editIpZqInvoice"
+                style="@style/InputField"
+                android:hint="pl. 50"
+                android:inputType="number"/>
+
+            <TextView style="@style/FieldLabel" android:text="Számlaszám"/>
+            <EditText
+                android:id="@+id/editInvoiceNum"
+                style="@style/InputField"
+                android:hint="pl. 2024/001"
+                android:inputType="text"
+                android:imeOptions="actionDone"/>
+
+            <!-- Nemrég nyomtatott számlák -->
+            <TextView
+                android:id="@+id/tvRecentLabel"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Nemrég nyomtatott számlák:"
+                android:textSize="13sp"
+                android:textColor="#555555"
+                android:textStyle="bold"
+                android:paddingTop="16dp"
+                android:paddingBottom="6dp"
+                android:visibility="gone"/>
+
+            <LinearLayout
+                android:id="@+id/layoutRecentInvoices"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"/>
+
+            <Button
+                android:id="@+id/btnPrintInvoice"
+                style="@style/PrintButton"
+                android:text="NYOMTATÁS"/>
+
+            <TextView android:id="@+id/statusInvoice" style="@style/StatusText"/>
+        </LinearLayout>
+    </ScrollView>
+
+    <!-- ========== QR KÓD ========== -->
+    <ScrollView
+        android:id="@+id/screenQr"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:visibility="gone">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:padding="16dp">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:paddingBottom="8dp">
+
+                <Button
+                    android:id="@+id/btnBackQr"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="← Vissza"
+                    android:background="@null"
+                    android:textColor="#4361EE"
+                    android:textSize="15sp"
+                    android:paddingStart="0dp"
+                    android:paddingEnd="12dp"/>
+
+                <TextView
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="QR kód nyomtatás"
+                    android:textSize="19sp"
+                    android:textStyle="bold"
+                    android:textColor="#1A1A2E"/>
+            </LinearLayout>
+
+            <TextView style="@style/FieldLabel" android:text="ZQ310 nyomtató száma (1-254)"/>
+            <EditText
+                android:id="@+id/editIpZqQr"
+                style="@style/InputField"
+                android:hint="pl. 50"
+                android:inputType="number"/>
+
+            <TextView style="@style/FieldLabel" android:text="QR kód tartalma"/>
+            <EditText
+                android:id="@+id/editQrData"
+                style="@style/InputField"
+                android:hint="Ide csipoghatsz is"
+                android:inputType="text"
+                android:imeOptions="actionDone"/>
+
+            <TextView style="@style/FieldLabel" android:text="Szöveg elhelyezése"/>
+            <RadioGroup
+                android:id="@+id/radioPlacement"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:layout_marginTop="4dp">
+
+                <RadioButton
+                    android:id="@+id/placeNone"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Nincs"
+                    android:textSize="15sp"
+                    android:layout_marginEnd="10dp"/>
+
+                <RadioButton
+                    android:id="@+id/placeBelow"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Alá"
+                    android:checked="true"
+                    android:textSize="15sp"
+                    android:layout_marginEnd="10dp"/>
+
+                <RadioButton
+                    android:id="@+id/placeLeft"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Balra"
+                    android:textSize="15sp"
+                    android:layout_marginEnd="10dp"/>
+
+                <RadioButton
+                    android:id="@+id/placeRight"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Jobbra"
+                    android:textSize="15sp"/>
+            </RadioGroup>
+
+            <Button
+                android:id="@+id/btnPrintQr"
+                style="@style/PrintButton"
+                android:text="NYOMTATÁS"/>
+
+            <TextView android:id="@+id/statusQr" style="@style/StatusText"/>
+        </LinearLayout>
+    </ScrollView>
+
+    <!-- ========== EGYEDI SZÖVEG ========== -->
+    <ScrollView
+        android:id="@+id/screenText"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:visibility="gone">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:padding="16dp">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:paddingBottom="8dp">
+
+                <Button
+                    android:id="@+id/btnBackText"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="← Vissza"
+                    android:background="@null"
+                    android:textColor="#4361EE"
+                    android:textSize="15sp"
+                    android:paddingStart="0dp"
+                    android:paddingEnd="12dp"/>
+
+                <TextView
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="Egyedi szöveg nyomtatása"
+                    android:textSize="19sp"
+                    android:textStyle="bold"
+                    android:textColor="#1A1A2E"/>
+            </LinearLayout>
+
+            <TextView style="@style/FieldLabel" android:text="ZQ310 nyomtató száma (1-254)"/>
+            <EditText
+                android:id="@+id/editIpZqText"
+                style="@style/InputField"
+                android:hint="pl. 50"
+                android:inputType="number"/>
+
+            <TextView style="@style/FieldLabel" android:text="Nyomtatandó szöveg"/>
+            <EditText
+                android:id="@+id/editFreeText"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:hint="Szöveg..."
+                android:inputType="textMultiLine"
+                android:minLines="4"
+                android:background="@drawable/input_bg"
+                android:padding="13dp"
+                android:textSize="16sp"
+                android:gravity="top"
+                android:layout_marginBottom="4dp"/>
+
+            <Button
+                android:id="@+id/btnPrintText"
+                style="@style/PrintButton"
+                android:text="NYOMTATÁS"/>
+
+            <TextView android:id="@+id/statusFreeText" style="@style/StatusText"/>
+        </LinearLayout>
+    </ScrollView>
+
+    <!-- ========== TESZTOLDAL ========== -->
+    <ScrollView
+        android:id="@+id/screenTest"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:visibility="gone">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:padding="16dp">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:paddingBottom="8dp">
+
+                <Button
+                    android:id="@+id/btnBackTest"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="← Vissza"
+                    android:background="@null"
+                    android:textColor="#4361EE"
+                    android:textSize="15sp"
+                    android:paddingStart="0dp"
+                    android:paddingEnd="12dp"/>
+
+                <TextView
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="Tesztoldal és beigazítás"
+                    android:textSize="19sp"
+                    android:textStyle="bold"
+                    android:textColor="#1A1A2E"/>
+            </LinearLayout>
+
+            <TextView style="@style/FieldLabel" android:text="ZD230d nyomtató száma (1-254)"/>
+            <EditText
+                android:id="@+id/editIpZd"
+                style="@style/InputField"
+                android:hint="pl. 60"
+                android:inputType="number"/>
+
+            <TextView style="@style/FieldLabel" android:text="Címke szélessége"/>
+            <RadioGroup
+                android:id="@+id/widthGroup"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:layout_marginTop="4dp">
+
+                <RadioButton
+                    android:id="@+id/width102"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="102 mm"
+                    android:checked="true"
+                    android:textSize="15sp"
+                    android:layout_marginEnd="14dp"/>
+
+                <RadioButton
+                    android:id="@+id/width76"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="76 mm"
+                    android:textSize="15sp"
+                    android:layout_marginEnd="14dp"/>
+
+                <RadioButton
+                    android:id="@+id/width57"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="57 mm"
+                    android:textSize="15sp"/>
+            </RadioGroup>
+
+            <TextView style="@style/FieldLabel" android:text="Magasság (mm)"/>
+            <EditText
+                android:id="@+id/editTestHeight"
+                style="@style/InputField"
+                android:text="50"
+                android:inputType="number"/>
+
+            <TextView style="@style/FieldLabel" android:text="Eltolás iránya"/>
+            <RadioGroup
+                android:id="@+id/directionGroup"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:layout_marginTop="4dp">
+
+                <RadioButton
+                    android:id="@+id/dirLeft"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="◀  Balra"
+                    android:checked="true"
+                    android:textSize="15sp"
+                    android:layout_marginEnd="24dp"/>
+
+                <RadioButton
+                    android:id="@+id/dirRight"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Jobbra  ▶"
+                    android:textSize="15sp"/>
+            </RadioGroup>
+
+            <TextView style="@style/FieldLabel" android:text="Eltolás mértéke (mm)"/>
+            <EditText
+                android:id="@+id/editLeftMargin"
+                style="@style/InputField"
+                android:text="0"
+                android:inputType="number"/>
+
+            <Button
+                android:id="@+id/btnPrintTest"
+                style="@style/PrintButton"
+                android:text="TESZTOLDAL NYOMTATÁSA"/>
+
+            <Button
+                android:id="@+id/btnSaveMargin"
+                android:layout_width="match_parent"
+                android:layout_height="56dp"
+                android:text="BEIGAZÍTÁS MENTÉSE A NYOMTATÓBA"
+                android:background="@drawable/tile_bg_orange"
+                android:textColor="#FFFFFF"
+                android:textSize="14sp"
+                android:textStyle="bold"
+                android:layout_marginTop="12dp"/>
+
+            <TextView android:id="@+id/statusTest" style="@style/StatusText"/>
+        </LinearLayout>
+    </ScrollView>
+
+</FrameLayout>
