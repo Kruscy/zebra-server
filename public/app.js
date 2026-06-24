@@ -19,6 +19,13 @@ document.getElementById('btnCancelSupplierEdit').addEventListener('click', close
 document.getElementById('supplierImgFile').addEventListener('change', onImgFileChange);
 document.getElementById('btnOpenSupplierMgr').addEventListener('click', openSupplierMgr);
 
+document.getElementById('supplierList').addEventListener('click', e => {
+  const editBtn = e.target.closest('.sup-edit-btn');
+  const delBtn  = e.target.closest('.sup-del-btn');
+  if (editBtn) openSupplierEdit(parseInt(editBtn.dataset.id));
+  if (delBtn)  deleteSupplier(parseInt(delBtn.dataset.id), delBtn.dataset.name);
+});
+
 document.getElementById('statsRow').addEventListener('click', e => {
   const el = e.target.closest('.stat');
   if (el) setFilter(el.dataset.filter);
@@ -34,30 +41,63 @@ document.getElementById('tBody').addEventListener('click', e => {
   if (btn && btn.dataset.id) delInv(parseInt(btn.dataset.id), btn.dataset.num);
 });
 
-// --- Szállító chip drag-scroll ---
+// --- Szállító chip drag-scroll momentum ---
 const chipsEl = document.getElementById('supplierChips');
-let _chipDragging = false, _chipStartX = 0, _chipScrollLeft = 0;
+let _chipActive = false, _chipDragging = false;
+let _chipStartX = 0, _chipScrollLeft = 0;
+let _chipVel = 0, _chipPrevX = 0, _chipPrevT = 0;
+let _momentumId = null;
+
+function startMomentum() {
+  if (_momentumId) cancelAnimationFrame(_momentumId);
+  (function step() {
+    if (Math.abs(_chipVel) < 0.3) { _momentumId = null; return; }
+    _chipVel *= 0.95;
+    chipsEl.scrollLeft += _chipVel;
+    _momentumId = requestAnimationFrame(step);
+  })();
+}
 
 chipsEl.addEventListener('mousedown', e => {
+  if (_momentumId) { cancelAnimationFrame(_momentumId); _momentumId = null; }
+  _chipActive = true;
   _chipDragging = false;
   _chipStartX = e.clientX;
   _chipScrollLeft = chipsEl.scrollLeft;
+  _chipPrevX = e.clientX;
+  _chipPrevT = performance.now();
+  _chipVel = 0;
+  e.preventDefault();
 });
+
 window.addEventListener('mousemove', e => {
-  if (!e.buttons || !chipsEl.matches(':hover') && !_chipDragging) return;
-  if (e.buttons && _chipStartX) {
-    const dx = e.clientX - _chipStartX;
-    if (Math.abs(dx) > 5) {
-      _chipDragging = true;
-      chipsEl.scrollLeft = _chipScrollLeft - dx;
-    }
+  if (!_chipActive || !e.buttons) { _chipActive = false; return; }
+  const dx = e.clientX - _chipStartX;
+  if (Math.abs(dx) > 5) _chipDragging = true;
+  if (_chipDragging) {
+    chipsEl.scrollLeft = _chipScrollLeft - dx;
+    const now = performance.now();
+    const dt = now - _chipPrevT;
+    if (dt > 0) _chipVel = -(e.clientX - _chipPrevX) / dt * 16;
+    _chipPrevX = e.clientX;
+    _chipPrevT = now;
   }
 });
-window.addEventListener('mouseup', () => { setTimeout(() => { _chipStartX = 0; }, 50); });
+
+window.addEventListener('mouseup', () => {
+  if (_chipActive && _chipDragging) startMomentum();
+  _chipActive = false;
+  setTimeout(() => { _chipDragging = false; }, 50);
+});
 
 let _touchMoved = false, _touchStartX = 0;
-chipsEl.addEventListener('touchstart', e => { _touchMoved=false; _touchStartX=e.touches[0].clientX; }, {passive:true});
-chipsEl.addEventListener('touchmove', e => { if(Math.abs(e.touches[0].clientX-_touchStartX)>8) _touchMoved=true; }, {passive:true});
+chipsEl.addEventListener('touchstart', e => {
+  _touchMoved = false;
+  _touchStartX = e.touches[0].clientX;
+}, {passive: true});
+chipsEl.addEventListener('touchmove', e => {
+  if (Math.abs(e.touches[0].clientX - _touchStartX) > 8) _touchMoved = true;
+}, {passive: true});
 
 chipsEl.addEventListener('click', e => {
   if (_chipDragging || _touchMoved) return;
@@ -220,8 +260,8 @@ function renderSupplierList() {
     return `<div class="sup-row">
       <span class="sup-row-info">${preview}<span>${esc(s.name)}</span><small>${dm}</small></span>
       <div class="sup-row-btns">
-        <button class="btn btn-secondary btn-sm" onclick="openSupplierEdit(${s.id})">Szerkeszt</button>
-        <button class="btn btn-danger btn-sm" onclick="deleteSupplier(${s.id},'${esc(s.name)}')">Töröl</button>
+        <button class="btn btn-secondary btn-sm sup-edit-btn" data-id="${s.id}">Szerkeszt</button>
+        <button class="btn btn-danger btn-sm sup-del-btn" data-id="${s.id}" data-name="${esc(s.name)}">Töröl</button>
       </div>
     </div>`;
   }).join('');

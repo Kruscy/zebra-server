@@ -55,7 +55,7 @@ header h1{font-size:1.15rem;letter-spacing:.01em}
 
 /* Szállító chipek */
 .chips-wrap{display:flex;align-items:center;gap:8px;flex:1;min-width:0;overflow:hidden}
-#supplierChips{display:flex;gap:6px;overflow-x:auto;scroll-behavior:smooth;cursor:grab;-webkit-overflow-scrolling:touch;scrollbar-width:none;padding-bottom:2px;flex:1;min-width:0}
+#supplierChips{display:flex;gap:6px;overflow-x:auto;cursor:grab;-webkit-overflow-scrolling:touch;scrollbar-width:none;padding-bottom:2px;flex:1;min-width:0}
 #supplierChips::-webkit-scrollbar{display:none}
 #supplierChips:active{cursor:grabbing}
 .chip{padding:6px 13px;border:1.5px solid #d1d5db;border-radius:20px;font-size:.82rem;font-weight:600;background:white;cursor:pointer;white-space:nowrap;display:inline-flex;align-items:center;gap:6px;transition:all .15s;flex-shrink:0;user-select:none}
@@ -116,8 +116,10 @@ footer a{color:#aaa;text-decoration:none}footer a:hover{color:#4361ee}
 .modal-btns{display:flex;gap:12px;margin-top:24px;justify-content:flex-end}
 
 /* Szállítókezelő modal */
-.modal-sup{max-width:500px}
-.modal-sup-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px}
+.modal-sup{max-width:500px;display:flex;flex-direction:column;max-height:88vh}
+.modal-sup-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-shrink:0}
+#btnAddSupplier{flex-shrink:0}
+#supplierList{overflow-y:auto;flex:1;min-height:0;padding-right:2px}
 .modal-sup-header h2{margin:0}
 .sup-row{display:flex;justify-content:space-between;align-items:center;padding:10px 12px;border:1px solid #eee;border-radius:8px;margin-bottom:8px;gap:8px}
 .sup-row-info{display:flex;align-items:center;gap:8px;flex:1;min-width:0;overflow:hidden}
@@ -139,7 +141,8 @@ footer a{color:#aaa;text-decoration:none}footer a:hover{color:#4361ee}
   .content{padding:8px}
   .sinput{min-width:0;flex:1;font-size:1rem;padding:11px 14px;max-width:none}
   .toolbar{flex-wrap:wrap}
-  .chips-wrap{order:3;width:100%}
+  .chips-wrap{order:3;width:100%;flex:0 0 100%;overflow:hidden}
+  #supplierChips .chip{padding:8px 14px;font-size:.86rem}
   .stat{min-width:80px;padding:10px 12px}
   .stat .val{font-size:1.5rem}
   .stat .lbl{font-size:.65rem}
