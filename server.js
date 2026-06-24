@@ -41,6 +41,26 @@ if (!db.prepare('SELECT id FROM users WHERE username = ?').get('zkpzebra')) {
 
 app.set('trust proxy', 1);
 
+// Bejelentkezési kísérlet-korlátozás (max 10 / 15 perc / IP)
+const _loginAttempts = new Map();
+function loginRateLimit(req, res, next) {
+  const ip = req.ip || 'unknown';
+  const now = Date.now();
+  let e = _loginAttempts.get(ip);
+  if (!e || now > e.resetAt) e = { count: 0, resetAt: now + 15 * 60 * 1000 };
+  e.count++;
+  _loginAttempts.set(ip, e);
+  if (e.count > 10) return res.status(429).json({ error: 'Túl sok bejelentkezési kísérlet. Várj 15 percet.' });
+  next();
+}
+// Sikeres login után számlálót nulláz
+function resetLoginAttempts(ip) { _loginAttempts.delete(ip); }
+
+// Session secret figyelmeztetés
+if (!process.env.SESSION_SECRET) {
+  console.warn('⚠️  SESSION_SECRET env változó nincs beállítva! Állítsd be: export SESSION_SECRET=<véletlen hosszú szöveg>');
+}
+
 app.use((req, res, next) => {
   res.setHeader('X-Content-Type-Options', 'nosniff');
   res.setHeader('X-Frame-Options', 'DENY');
@@ -55,7 +75,7 @@ app.use((req, res, next) => {
 app.use(express.json({ limit: '3mb' }));
 app.use(express.urlencoded({ extended: true }));
 app.use(session({
-  secret: process.env.SESSION_SECRET || 'zebra-titkos-kulcs-2024',
+  secret: process.env.SESSION_SECRET || require('crypto').randomBytes(32).toString('hex'),
   resave: false,
   saveUninitialized: false,
   cookie: { maxAge: 24 * 60 * 60 * 1000, secure: 'auto', sameSite: 'lax' }
@@ -76,14 +96,18 @@ const STATUSES = ['Nyomtatva', 'Feldolgozás alatt', 'Elpakolható', 'Elpakolva'
 const DISPLAY_MODES = ['text', 'both', 'image'];
 
 // --- Auth ---
-app.post('/api/login', (req, res) => {
+app.post('/api/login', loginRateLimit, (req, res) => {
   const { username, password } = req.body;
   const user = db.prepare('SELECT * FROM users WHERE username = ?').get(username);
   if (!user || !bcrypt.compareSync(password, user.password))
     return res.status(401).json({ error: 'Hibás felhasználónév vagy jelszó' });
-  req.session.userId = user.id;
-  req.session.username = user.username;
-  res.json({ ok: true, username: user.username });
+  resetLoginAttempts(req.ip);
+  req.session.regenerate(err => {
+    if (err) return res.status(500).json({ error: 'Session hiba' });
+    req.session.userId = user.id;
+    req.session.username = user.username;
+    res.json({ ok: true, username: user.username });
+  });
 });
 
 app.post('/api/logout', (req, res) => { req.session.destroy(); res.json({ ok: true }); });
@@ -141,6 +165,8 @@ app.post('/api/suppliers', (req, res) => {
 app.put('/api/suppliers/:id', requireLogin, (req, res) => {
   const { name, image, display_mode } = req.body;
   if (!name?.trim()) return res.status(400).json({ error: 'Hiányzó név' });
+  if (image && Buffer.byteLength(image, 'utf8') > 400 * 1024)
+    return res.status(400).json({ error: 'A kép mérete maximum 300 KB lehet' });
   const dm = DISPLAY_MODES.includes(display_mode) ? display_mode : 'text';
   try {
     db.prepare('UPDATE suppliers SET name=?,image=?,display_mode=? WHERE id=?')

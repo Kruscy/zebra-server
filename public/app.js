@@ -18,6 +18,13 @@ document.getElementById('btnSaveSupplier').addEventListener('click', saveSupplie
 document.getElementById('btnCancelSupplierEdit').addEventListener('click', closeSupplierEdit);
 document.getElementById('supplierImgFile').addEventListener('change', onImgFileChange);
 document.getElementById('btnOpenSupplierMgr').addEventListener('click', openSupplierMgr);
+document.getElementById('headerTitle').addEventListener('click', () => {
+  if (document.getElementById('dashboard').style.display === 'none') return;
+  document.getElementById('search').value = '';
+  activeSupplier = '';
+  activeFilter = 'Összes';
+  loadData();
+});
 
 document.getElementById('supplierList').addEventListener('click', e => {
   const editBtn = e.target.closest('.sup-edit-btn');
