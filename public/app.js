@@ -44,9 +44,14 @@ document.getElementById('tBody').addEventListener('change', e => {
 });
 
 document.getElementById('tBody').addEventListener('click', e => {
-  const btn = e.target.closest('.btn-danger');
-  if (btn && btn.dataset.id) delInv(parseInt(btn.dataset.id), btn.dataset.num);
+  const btn = e.target.closest('.inv-edit-btn');
+  if (btn && btn.dataset.id) openInvoiceEdit(parseInt(btn.dataset.id));
 });
+
+document.getElementById('invoiceModal').addEventListener('click', e => { if (e.target === e.currentTarget) closeInvoiceEdit(); });
+document.getElementById('btnInvClose').addEventListener('click', closeInvoiceEdit);
+document.getElementById('btnInvSave').addEventListener('click', saveInvoiceEdit);
+document.getElementById('btnInvDelete').addEventListener('click', deleteInvoiceFromModal);
 
 // --- Szállító chip drag-scroll momentum ---
 const chipsEl = document.getElementById('supplierChips');
@@ -219,7 +224,7 @@ function render() {
       <td data-label="Módosítva" class="dcell">${fmtDate(i.updated_at)}</td>
       <td data-label="Műveletek"><div class="acts">
         <select class="sel" data-id="${i.id}">${opts}</select>
-        <button class="btn btn-danger btn-sm" data-id="${i.id}" data-num="${esc(i.invoice_number)}">Töröl</button>
+        <button class="btn btn-secondary btn-sm inv-edit-btn" data-id="${i.id}">Szerkeszt</button>
       </div></td>
     </tr>`;
   }).join('');
@@ -241,10 +246,49 @@ async function changeStatus(id, status) {
   if (r.ok) { const i=invoices.find(x=>x.id===id); if(i){i.status=status;} renderStats(); render(); }
 }
 
-async function delInv(id, num) {
-  if (!confirm(`Biztosan törli?\n${num}`)) return;
-  const r = await fetch(`/api/invoices/${id}`,{method:'DELETE'});
-  if (r.ok) { invoices=invoices.filter(i=>i.id!==id); renderStats(); render(); }
+// --- Számla szerkesztő modal ---
+let _editingInvId = null;
+
+function openInvoiceEdit(id) {
+  const inv = invoices.find(i => i.id === id);
+  if (!inv) return;
+  _editingInvId = id;
+  document.getElementById('invModalTitle').textContent = inv.invoice_number;
+  const sel = document.getElementById('invModalStatus');
+  sel.innerHTML = ST.map(s => `<option value="${s}"${s===inv.status?' selected':''}>${s}</option>`).join('');
+  document.getElementById('invModalSupplier').textContent = inv.supplier || '—';
+  document.getElementById('invModalCreated').textContent = fmtDate(inv.created_at);
+  document.getElementById('invModalUpdated').textContent = fmtDate(inv.updated_at);
+  document.getElementById('invoiceModal').classList.add('open');
+}
+
+function closeInvoiceEdit() {
+  document.getElementById('invoiceModal').classList.remove('open');
+  _editingInvId = null;
+}
+
+async function saveInvoiceEdit() {
+  if (!_editingInvId) return;
+  const status = document.getElementById('invModalStatus').value;
+  const r = await fetch(`/api/invoices/${_editingInvId}/status`, {
+    method: 'PUT', headers: {'Content-Type':'application/json'}, body: JSON.stringify({status})
+  });
+  if (r.ok) {
+    const inv = invoices.find(i => i.id === _editingInvId);
+    if (inv) inv.status = status;
+    renderStats(); render(); closeInvoiceEdit();
+  }
+}
+
+async function deleteInvoiceFromModal() {
+  const inv = invoices.find(i => i.id === _editingInvId);
+  if (!inv) return;
+  if (!confirm(`Biztosan törli?\n${inv.invoice_number}`)) return;
+  const r = await fetch(`/api/invoices/${_editingInvId}`, {method: 'DELETE'});
+  if (r.ok) {
+    invoices = invoices.filter(i => i.id !== _editingInvId);
+    renderStats(); render(); closeInvoiceEdit();
+  }
 }
 
 // --- Szállító kezelő modal ---
