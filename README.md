@@ -1,6 +1,6 @@
 # ZKP Zebra – Invoice Tracking Server
 
-Internal web system for Zebra label printers. Records invoice numbers printed by the Android app and provides a web interface for status tracking.
+Internal web system for Zebra label printers. Records invoice numbers printed by the Android app and provides a web interface for status tracking and supplier management.
 
 **Status workflow:** Printed → Processing → Ready to pack → Packed → Issued
 
@@ -15,6 +15,19 @@ Android app  ──→  Node.js server (port 3000)  ←──  Browser (web UI)
 ```
 
 An Nginx Proxy Manager sits in front of the server, forwarding an external domain to the internal port and providing HTTPS.
+
+---
+
+## Features
+
+- Invoice registration from the Android app (with supplier)
+- Invoice status tracking via web interface
+- Supplier management (name, logo image, display mode: text / text+image / image only)
+- Horizontally scrollable supplier filter chips
+- Real-time updates via SSE (Server-Sent Events)
+- APK download directly from the web interface (after login)
+- Login rate limiting (max 10 attempts / 15 minutes / IP)
+- Content Security Policy headers
 
 ---
 
@@ -71,7 +84,7 @@ Environment=NODE_ENV=production PORT=3000
 Environment=SESSION_SECRET=replace-with-a-random-secret
 ```
 
-> **Important:** Replace `SESSION_SECRET` with a long random string (e.g. output of `openssl rand -hex 32`).
+> **Important:** Replace `SESSION_SECRET` with a long random string (e.g. `openssl rand -hex 32`).
 
 Enable and start:
 
@@ -82,7 +95,11 @@ systemctl start zebra-server
 systemctl status zebra-server
 ```
 
-### 5. Nginx Proxy Manager setup
+### 5. First login
+
+On first start the server automatically creates a default admin user. Log in and immediately change the password via the top-right menu → **Change password**.
+
+### 6. Nginx Proxy Manager setup
 
 Create a new Proxy Host in NPM:
 
@@ -100,6 +117,8 @@ Create a new Proxy Host in NPM:
 
 ```nginx
 proxy_buffering off;
+proxy_cache off;
+proxy_set_header X-Accel-Buffering no;
 proxy_read_timeout 3600s;
 proxy_connect_timeout 5s;
 proxy_next_upstream error timeout http_502 http_503;
@@ -125,13 +144,31 @@ systemctl restart zebra-server
 |----------|------|-------------|
 | `GET /` | – | Web UI (login page) |
 | `POST /api/login` | – | Login |
+| `POST /api/logout` | – | Logout |
+| `GET /api/me` | – | Session check |
+| `POST /api/change-password` | ✓ | Change password |
+| `GET /api/health` | – | Server health check |
+| `GET /api/events` | ✓ | SSE real-time updates |
 | `POST /api/invoices` | – | Register invoice (Android app) |
-| `GET /api/invoices/:num/status` | – | Get invoice status (Android app) |
 | `GET /api/invoices` | ✓ | List all invoices |
+| `GET /api/invoices/:num/status` | – | Get invoice status (Android app) |
 | `PUT /api/invoices/:id/status` | ✓ | Update invoice status |
 | `DELETE /api/invoices/:id` | ✓ | Delete invoice |
-| `GET /api/events` | ✓ | SSE real-time updates |
-| `GET /api/health` | – | Server health check |
+| `GET /api/suppliers` | – | List suppliers (Android app) |
+| `POST /api/suppliers` | – | Create supplier (Android app) |
+| `PUT /api/suppliers/:id` | ✓ | Update supplier (web) |
+| `DELETE /api/suppliers/:id` | ✓ | Delete supplier (web) |
+
+---
+
+## Android app
+
+The companion Android app (ZebraPrint) is available for download from the web interface after login.
+
+- Prints invoice labels and QR codes on Zebra ZQ310/ZQ320 (72mm) and ZD230d (102mm) printers
+- Registers invoices to the server via the API
+- Supports supplier selection per invoice
+- TCP printing on port 9100
 
 ---
 

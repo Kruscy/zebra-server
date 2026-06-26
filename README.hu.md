@@ -1,6 +1,6 @@
 # ZKP Zebra – Számlakezelő szerver
 
-Belső webes rendszer Zebra nyomtatókhoz. Az Android app által nyomtatott számlaszámokat rögzíti, és egy webes felületen teszi lehetővé a státuszkövetést.
+Belső webes rendszer Zebra nyomtatókhoz. Az Android app által nyomtatott számlaszámokat rögzíti, és webes felületen teszi lehetővé a státuszkövetést és szállítókezelést.
 
 **Státusz folyamat:** Nyomtatva → Feldolgozás alatt → Elpakolható → Elpakolva → Kiadva
 
@@ -15,6 +15,19 @@ Android app  ──→  Node.js szerver (port 3000)  ←──  Böngésző (web
 ```
 
 A szerver elé Nginx Proxy Manager kerül, amely a külső domain-t továbbítja a belső portra és HTTPS-t biztosít.
+
+---
+
+## Funkciók
+
+- Számlarögzítés az Android appból (szállítóval együtt)
+- Számla státuszkövetés webes felületen
+- Szállítókezelés (név, logókép, megjelenítési mód: szöveg / szöveg+kép / csak kép)
+- Vízszintesen görgethető szállítószűrő chipek
+- Valós idejű frissítés SSE (Server-Sent Events) segítségével
+- APK letöltés közvetlenül a webes felületről (bejelentkezés után)
+- Bejelentkezési kísérlet-korlátozás (max 10 kísérlet / 15 perc / IP)
+- Content Security Policy fejlécek
 
 ---
 
@@ -82,7 +95,11 @@ systemctl start zebra-server
 systemctl status zebra-server
 ```
 
-### 5. Nginx Proxy Manager beállítása
+### 5. Első bejelentkezés
+
+Az első indításkor a szerver automatikusan létrehozza az alapértelmezett adminisztrátort. Bejelentkezés után azonnal változtasd meg a jelszót: jobb felső sarok → **Jelszóváltás**.
+
+### 6. Nginx Proxy Manager beállítása
 
 Az NPM-ben hozz létre egy új Proxy Host-ot:
 
@@ -100,6 +117,8 @@ Az NPM-ben hozz létre egy új Proxy Host-ot:
 
 ```nginx
 proxy_buffering off;
+proxy_cache off;
+proxy_set_header X-Accel-Buffering no;
 proxy_read_timeout 3600s;
 proxy_connect_timeout 5s;
 proxy_next_upstream error timeout http_502 http_503;
@@ -125,13 +144,31 @@ systemctl restart zebra-server
 |---------|------|--------|
 | `GET /` | – | Web felület (login oldal) |
 | `POST /api/login` | – | Bejelentkezés |
+| `POST /api/logout` | – | Kijelentkezés |
+| `GET /api/me` | – | Session ellenőrzés |
+| `POST /api/change-password` | ✓ | Jelszóváltás |
+| `GET /api/health` | – | Szerver állapot |
+| `GET /api/events` | ✓ | SSE valós idejű frissítés |
 | `POST /api/invoices` | – | Számla rögzítése (Android app) |
-| `GET /api/invoices/:num/status` | – | Státusz lekérdezése (Android app) |
 | `GET /api/invoices` | ✓ | Összes számla listája |
+| `GET /api/invoices/:num/status` | – | Státusz lekérdezése (Android app) |
 | `PUT /api/invoices/:id/status` | ✓ | Státusz módosítása |
 | `DELETE /api/invoices/:id` | ✓ | Számla törlése |
-| `GET /api/events` | ✓ | SSE real-time frissítés |
-| `GET /api/health` | – | Szerver állapot |
+| `GET /api/suppliers` | – | Szállítók listája (Android app) |
+| `POST /api/suppliers` | – | Szállító létrehozása (Android app) |
+| `PUT /api/suppliers/:id` | ✓ | Szállító szerkesztése (web) |
+| `DELETE /api/suppliers/:id` | ✓ | Szállító törlése (web) |
+
+---
+
+## Android alkalmazás
+
+A ZebraPrint Android app a webes felületről tölthető le bejelentkezés után.
+
+- Számlacímkét és QR kódot nyomtat Zebra ZQ310/ZQ320 (72mm) és ZD230d (102mm) nyomtatókra
+- Számlát rögzít a szerveren az API-n keresztül
+- Szállítót lehet kiválasztani nyomtatáskor
+- TCP nyomtatás a 9100-as porton
 
 ---
 
