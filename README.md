@@ -82,15 +82,7 @@ systemctl start zebra-server
 systemctl status zebra-server
 ```
 
-### 5. Default login credentials
-
-On first start the server automatically creates a default user:
-- **Username:** `zkpzebra`
-- **Password:** `admin123`
-
-Change the password after login via the top-right menu → Change password.
-
-### 6. Nginx Proxy Manager setup
+### 5. Nginx Proxy Manager setup
 
 Create a new Proxy Host in NPM:
 
