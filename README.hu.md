@@ -82,15 +82,7 @@ systemctl start zebra-server
 systemctl status zebra-server
 ```
 
-### 5. Alapértelmezett belépési adatok
-
-A szerver első indításkor automatikusan létrehozza az alapértelmezett felhasználót:
-- **Felhasználónév:** `zkpzebra`
-- **Jelszó:** `admin123`
-
-A jelszót a webes felületen belépés után meg lehet változtatni (jobb felső sarok → Jelszóváltás).
-
-### 6. Nginx Proxy Manager beállítása
+### 5. Nginx Proxy Manager beállítása
 
 Az NPM-ben hozz létre egy új Proxy Host-ot:
 
