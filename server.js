@@ -3,6 +3,26 @@ const session = require('express-session');
 const bcrypt = require('bcryptjs');
 const Database = require('better-sqlite3');
 const path = require('path');
+const fs = require('fs');
+
+const APK_DIR = '/opt/zebrapp';
+
+function getLatestApk() {
+  try {
+    const files = fs.readdirSync(APK_DIR)
+      .filter(f => /^ZebraPrint-v[\d.]+\.apk$/.test(f));
+    if (!files.length) return null;
+    files.sort((a, b) => {
+      const am = a.match(/v(\d+)\.(\d+)/); const bm = b.match(/v(\d+)\.(\d+)/);
+      const [aMaj, aMin] = am ? [+am[1], +am[2]] : [0, 0];
+      const [bMaj, bMin] = bm ? [+bm[1], +bm[2]] : [0, 0];
+      return (bMaj - aMaj) || (bMin - aMin);
+    });
+    const filename = files[0];
+    const version = (filename.match(/v([\d.]+)\.apk/) || [])[1] || '';
+    return { filename, version };
+  } catch { return null; }
+}
 
 const app = express();
 const db = new Database(path.join(__dirname, 'zebra.db'));
@@ -130,8 +150,25 @@ app.post('/api/change-password', requireLogin, (req, res) => {
 app.get('/api/health', (req, res) => {
   try {
     const { c } = db.prepare('SELECT COUNT(*) as c FROM invoices').get();
-    res.json({ ok: true, invoices: c, version: '1.0' });
+    const apk = getLatestApk();
+    res.json({ ok: true, invoices: c, version: apk ? apk.version : '?' });
   } catch(e) { res.status(500).json({ ok: false, error: e.message }); }
+});
+
+// --- APK frissítés ---
+app.get('/api/apk-info', (req, res) => {
+  const apk = getLatestApk();
+  if (!apk) return res.status(404).json({ error: 'Nincs APK' });
+  res.json({ version: apk.version, filename: apk.filename, url: `/apk/${apk.filename}` });
+});
+
+app.get('/apk/:filename', (req, res) => {
+  const filename = req.params.filename;
+  if (!/^ZebraPrint-v[\d.]+\.apk$/.test(filename))
+    return res.status(400).json({ error: 'Érvénytelen fájlnév' });
+  const filePath = path.join(APK_DIR, filename);
+  if (!fs.existsSync(filePath)) return res.status(404).json({ error: 'Nem található' });
+  res.download(filePath, filename);
 });
 
 // --- SSE ---
