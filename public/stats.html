@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>ZKP Zebra – Statisztika</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#F0F2F5;color:#1A1A2E;min-height:100vh}
+.container{max-width:960px;margin:0 auto;padding:16px}
+.header{display:flex;align-items:center;gap:12px;padding:12px 0 20px}
+.back-btn{color:#4361EE;text-decoration:none;font-size:15px;font-weight:600;white-space:nowrap}
+.header h1{font-size:20px;font-weight:700;color:#1A1A2E}
+.card-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px;margin-bottom:18px}
+.card{background:white;border-radius:12px;padding:14px 16px;box-shadow:0 2px 6px rgba(0,0,0,.06)}
+.card-val{font-size:26px;font-weight:700;color:#4361EE}
+.card-lbl{font-size:12px;color:#888;margin-top:2px}
+.section{background:white;border-radius:12px;padding:16px;box-shadow:0 2px 6px rgba(0,0,0,.06);margin-bottom:14px}
+.period-row{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:14px}
+.period-btn{padding:8px 18px;border:2px solid #E5E7EB;border-radius:20px;background:white;cursor:pointer;font-size:14px;font-weight:600;color:#555;transition:.15s}
+.period-btn.active{background:#4361EE;border-color:#4361EE;color:white}
+#refInput{padding:8px 12px;border:2px solid #E5E7EB;border-radius:10px;font-size:14px;color:#1A1A2E;background:white;cursor:pointer}
+.filter-row{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:18px}
+.filter-row select{padding:8px 10px;border:2px solid #E5E7EB;border-radius:10px;font-size:14px;background:white;color:#1A1A2E;cursor:pointer}
+.filter-row label{font-size:14px;color:#555;display:flex;align-items:center;gap:5px;cursor:pointer}
+.filter-row input[type=checkbox]{width:16px;height:16px;cursor:pointer}
+.view-tabs{display:flex;gap:6px;margin-bottom:14px}
+.view-tab{padding:8px 16px;border:2px solid #E5E7EB;border-radius:8px;background:white;cursor:pointer;font-size:13px;font-weight:600;color:#555}
+.view-tab.active{background:#4361EE;border-color:#4361EE;color:white}
+table{width:100%;border-collapse:collapse;font-size:14px}
+th{text-align:left;padding:9px 10px;border-bottom:2px solid #E5E7EB;color:#888;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.04em}
+td{padding:10px 10px;border-bottom:1px solid #F0F2F5;color:#1A1A2E}
+tr:last-child td{border-bottom:none}
+tr.empty td{color:#CCC}
+tr.weekend td{background:#FAFAFA;color:#AAA}
+tr.weekend td:first-child::after{content:" (hé)";font-size:11px}
+tr.saturday td:first-child::after{content:" (szo)";font-size:11px;color:#D97706}
+tr.sunday td:first-child::after{content:" (vas)";font-size:11px;color:#EF4444}
+.badge{display:inline-block;padding:2px 8px;border-radius:10px;font-size:11px;font-weight:700}
+.badge-blue{background:#EEF2FF;color:#4361EE}
+.badge-grey{background:#F3F4F6;color:#888}
+.loading{text-align:center;color:#888;padding:40px;font-size:15px}
+.date-nav{display:flex;align-items:center;gap:6px}
+.nav-btn{padding:6px 12px;border:2px solid #E5E7EB;border-radius:8px;background:white;cursor:pointer;font-size:16px;color:#555;line-height:1}
+.nav-btn:hover{border-color:#4361EE;color:#4361EE}
+.range-label{font-size:13px;color:#555;font-weight:600;min-width:160px;text-align:center}
+@media(max-width:600px){
+  .card-row{grid-template-columns:1fr 1fr}
+  .card-val{font-size:20px}
+  th,td{padding:8px 6px;font-size:13px}
+}
+</style>
+</head>
+<body>
+<div class="container">
+  <div class="header">
+    <a href="/" class="back-btn">← Vissza</a>
+    <h1>Statisztika</h1>
+  </div>
+
+  <!-- Időszak + navigáció -->
+  <div class="section">
+    <div class="period-row">
+      <button class="period-btn active" data-p="day">Nap</button>
+      <button class="period-btn" data-p="week">Hét</button>
+      <button class="period-btn" data-p="month">Hónap</button>
+      <div class="date-nav" style="margin-left:auto">
+        <button class="nav-btn" id="btnPrev">‹</button>
+        <input type="date" id="refInput">
+        <button class="nav-btn" id="btnNext">›</button>
+        <button class="nav-btn" id="btnToday" title="Ma">●</button>
+      </div>
+    </div>
+    <div class="filter-row">
+      <select id="selWorker"><option value="">Minden dolgozó</option></select>
+      <select id="selSupplier"><option value="">Minden szállító</option></select>
+      <label><input type="checkbox" id="chkSat" checked> Szombat</label>
+      <label><input type="checkbox" id="chkSun" checked> Vasárnap</label>
+    </div>
+    <div class="range-label" id="rangeLabel" style="color:#4361EE;font-weight:700;margin-bottom:2px"></div>
+  </div>
+
+  <!-- Összesítő kártyák -->
+  <div class="card-row">
+    <div class="card"><div class="card-val" id="cInvoices">–</div><div class="card-lbl">Számlák</div></div>
+    <div class="card"><div class="card-val" id="cItems">–</div><div class="card-lbl">Tételek</div></div>
+    <div class="card"><div class="card-val" id="cAvg">–</div><div class="card-lbl">Átlag / tétel</div></div>
+    <div class="card"><div class="card-val" id="cTotal">–</div><div class="card-lbl">Összes aktív idő</div></div>
+  </div>
+
+  <!-- Nézet váltó -->
+  <div class="view-tabs">
+    <button class="view-tab active" data-v="day">Naponta</button>
+    <button class="view-tab" data-v="worker">Dolgozónként</button>
+    <button class="view-tab" data-v="supplier">Szállítónként</button>
+  </div>
+
+  <!-- Táblázat -->
+  <div class="section">
+    <div id="tableArea"><div class="loading">Betöltés…</div></div>
+  </div>
+</div>
+
+<script>
+let period = 'day';
+let refDate = today();
+let view = 'day';
+
+function today() {
+  const d = new Date();
+  return fmt(d);
+}
+function fmt(d) {
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+}
+function fmtSec(s) {
+  if (!s) return '–';
+  const m = Math.floor(s/60), sec = s%60;
+  if (m >= 60) { const h=Math.floor(m/60); return `${h}ó ${m%60}p`; }
+  return `${m}p ${sec}m`;
+}
+function fmtHu(dateStr) {
+  if (!dateStr) return '';
+  const d = new Date(dateStr + 'T00:00:00');
+  const days = ['vas','hét','kedd','szer','csüt','pén','szo'];
+  const months = ['jan','feb','már','ápr','máj','jún','júl','aug','szep','okt','nov','dec'];
+  return `${d.getFullYear()}. ${months[d.getMonth()]}. ${String(d.getDate()).padStart(2,'0')}. (${days[d.getDay()]})`;
+}
+
+// Period buttons
+document.querySelectorAll('.period-btn').forEach(b => b.addEventListener('click', () => {
+  document.querySelectorAll('.period-btn').forEach(x=>x.classList.remove('active'));
+  b.classList.add('active');
+  period = b.dataset.p;
+  updateRefInput();
+  load();
+}));
+
+// View tabs
+document.querySelectorAll('.view-tab').forEach(b => b.addEventListener('click', () => {
+  document.querySelectorAll('.view-tab').forEach(x=>x.classList.remove('active'));
+  b.classList.add('active');
+  view = b.dataset.v;
+  renderCurrentData();
+}));
+
+// Date input
+const refInput = document.getElementById('refInput');
+refInput.value = refDate;
+refInput.addEventListener('change', () => { refDate = refInput.value || today(); load(); });
+
+// Nav buttons
+document.getElementById('btnPrev').addEventListener('click', () => navigate(-1));
+document.getElementById('btnNext').addEventListener('click', () => navigate(1));
+document.getElementById('btnToday').addEventListener('click', () => { refDate = today(); updateRefInput(); load(); });
+
+function navigate(dir) {
+  const d = new Date(refDate + 'T00:00:00');
+  if (period === 'day') d.setDate(d.getDate() + dir);
+  else if (period === 'week') d.setDate(d.getDate() + dir*7);
+  else d.setMonth(d.getMonth() + dir);
+  refDate = fmt(d);
+  updateRefInput();
+  load();
+}
+function updateRefInput() {
+  if (period === 'week') {
+    const d = new Date(refDate + 'T00:00:00');
+    const dow = d.getDay();
+    d.setDate(d.getDate() + (dow===0?-6:1-dow));
+    refInput.value = fmt(d);
+  } else if (period === 'month') {
+    refInput.value = refDate.substring(0,7) + '-01';
+  } else {
+    refInput.value = refDate;
+  }
+}
+
+// Filters
+document.getElementById('selWorker').addEventListener('change', load);
+document.getElementById('selSupplier').addEventListener('change', load);
+document.getElementById('chkSat').addEventListener('change', load);
+document.getElementById('chkSun').addEventListener('change', load);
+
+let currentData = null;
+
+async function load() {
+  const worker = document.getElementById('selWorker').value;
+  const supplier = document.getElementById('selSupplier').value;
+  const showSat = document.getElementById('chkSat').checked ? '1' : '0';
+  const showSun = document.getElementById('chkSun').checked ? '1' : '0';
+  const weekends = (showSat==='1'||showSun==='1') ? '1' : '0';
+
+  document.getElementById('tableArea').innerHTML = '<div class="loading">Betöltés…</div>';
+
+  try {
+    const r = await fetch(`/api/stats?period=${period}&ref=${refDate}&worker=${encodeURIComponent(worker)}&supplier=${encodeURIComponent(supplier)}&weekends=${weekends}&sat=${showSat}&sun=${showSun}`);
+    if (r.status === 401) { location.href = '/'; return; }
+    currentData = await r.json();
+    renderData(currentData, showSat==='1', showSun==='1');
+  } catch(e) {
+    document.getElementById('tableArea').innerHTML = `<div class="loading">Hiba: ${e.message}</div>`;
+  }
+}
+
+function renderData(data, showSat, showSun) {
+  // Range label
+  if (data.startDate === data.endDate) {
+    document.getElementById('rangeLabel').textContent = fmtHu(data.startDate);
+  } else {
+    document.getElementById('rangeLabel').textContent = `${fmtHu(data.startDate)} – ${fmtHu(data.endDate)}`;
+  }
+
+  // Cards
+  document.getElementById('cInvoices').textContent = data.summary.invoices || '0';
+  document.getElementById('cItems').textContent = data.summary.items || '0';
+  document.getElementById('cAvg').textContent = fmtSec(data.summary.avg_per_item);
+  document.getElementById('cTotal').textContent = fmtSec(data.summary.active_seconds);
+
+  // Worker/supplier dropdowns
+  const wSel = document.getElementById('selWorker');
+  const curW = wSel.value;
+  wSel.innerHTML = '<option value="">Minden dolgozó</option>';
+  (data.workers||[]).forEach(w => {
+    const o = document.createElement('option');
+    o.value = w; o.textContent = w;
+    if (w === curW) o.selected = true;
+    wSel.appendChild(o);
+  });
+
+  const sSel = document.getElementById('selSupplier');
+  const curS = sSel.value;
+  sSel.innerHTML = '<option value="">Minden szállító</option>';
+  (data.suppliers||[]).forEach(s => {
+    const o = document.createElement('option');
+    o.value = s; o.textContent = s;
+    if (s === curS) o.selected = true;
+    sSel.appendChild(o);
+  });
+
+  currentData = data;
+  currentData._showSat = showSat;
+  currentData._showSun = showSun;
+  renderCurrentData();
+}
+
+function renderCurrentData() {
+  if (!currentData) return;
+  const data = currentData;
+  const showSat = data._showSat !== false;
+  const showSun = data._showSun !== false;
+
+  if (view === 'day') {
+    const rows = (data.by_day||[]).filter(r => {
+      const dow = new Date(r.date+'T00:00:00').getDay();
+      if (dow===6 && !showSat) return false;
+      if (dow===0 && !showSun) return false;
+      return true;
+    });
+    const html = `<table>
+      <tr><th>Dátum</th><th>Számlák</th><th>Tételek</th><th>Aktív idő</th><th>Átlag/tétel</th></tr>
+      ${rows.length ? rows.map(r => {
+        const dow = new Date(r.date+'T00:00:00').getDay();
+        const cls = r.invoices===0 ? 'empty' : (dow===6?'saturday':dow===0?'sunday':'');
+        const dateStr = fmtHu(r.date);
+        return `<tr class="${cls}">
+          <td>${dateStr}</td>
+          <td>${r.invoices||'–'}</td>
+          <td>${r.items||'–'}</td>
+          <td>${fmtSec(r.active_seconds)}</td>
+          <td>${fmtSec(r.avg_per_item)}</td>
+        </tr>`;
+      }).join('') : '<tr><td colspan="5" style="text-align:center;color:#CCC;padding:30px">Nincs adat</td></tr>'}
+    </table>`;
+    document.getElementById('tableArea').innerHTML = html;
+
+  } else if (view === 'worker') {
+    const rows = data.by_worker||[];
+    const html = `<table>
+      <tr><th>Dolgozó</th><th>Számlák</th><th>Tételek</th><th>Aktív idő</th><th>Átlag/tétel</th></tr>
+      ${rows.length ? rows.map(r => `<tr>
+        <td>${r.worker||r.worker_name||'–'}</td>
+        <td>${r.invoices}</td><td>${r.items}</td>
+        <td>${fmtSec(r.active_seconds)}</td><td>${fmtSec(r.avg_per_item)}</td>
+      </tr>`).join('') : '<tr><td colspan="5" style="text-align:center;color:#CCC;padding:30px">Nincs adat</td></tr>'}
+    </table>`;
+    document.getElementById('tableArea').innerHTML = html;
+
+  } else if (view === 'supplier') {
+    const rows = data.by_supplier||[];
+    const html = `<table>
+      <tr><th>Szállító</th><th>Számlák</th><th>Tételek</th><th>Aktív idő</th><th>Átlag/tétel</th></tr>
+      ${rows.length ? rows.map(r => `<tr>
+        <td>${r.supplier||'(nincs szállító)'}</td>
+        <td>${r.invoices}</td><td>${r.items}</td>
+        <td>${fmtSec(r.active_seconds)}</td><td>${fmtSec(r.avg_per_item)}</td>
+      </tr>`).join('') : '<tr><td colspan="5" style="text-align:center;color:#CCC;padding:30px">Nincs adat</td></tr>'}
+    </table>`;
+    document.getElementById('tableArea').innerHTML = html;
+  }
+}
+
+// Init
+(async () => {
+  const me = await fetch('/api/me').then(r=>r.json()).catch(()=>({loggedIn:false}));
+  if (!me.loggedIn) { location.href = '/'; return; }
+  updateRefInput();
+  await load();
+})();
+</script>
+</body>
+</html>

@@ -46,6 +46,26 @@ db.exec(`
     image TEXT NOT NULL DEFAULT '',
     display_mode TEXT NOT NULL DEFAULT 'text'
   );
+  CREATE TABLE IF NOT EXISTS workers (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT UNIQUE NOT NULL,
+    work_start TEXT NOT NULL DEFAULT '07:00',
+    work_end TEXT NOT NULL DEFAULT '15:00',
+    created_at TEXT NOT NULL DEFAULT (datetime('now','localtime'))
+  );
+  CREATE TABLE IF NOT EXISTS time_records (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    invoice_number TEXT NOT NULL,
+    worker_name TEXT NOT NULL,
+    supplier TEXT NOT NULL DEFAULT '',
+    item_count INTEGER NOT NULL DEFAULT 1,
+    date TEXT NOT NULL,
+    started_at TEXT NOT NULL,
+    ended_at TEXT NOT NULL,
+    active_seconds INTEGER NOT NULL,
+    total_seconds INTEGER NOT NULL,
+    created_at TEXT NOT NULL DEFAULT (datetime('now','localtime'))
+  );
 `);
 
 // Migrációk
@@ -264,6 +284,131 @@ app.put('/api/invoices/:id/status', requireLogin, (req, res) => {
 app.delete('/api/invoices/:id', requireLogin, (req, res) => {
   db.prepare('DELETE FROM invoices WHERE id=?').run(req.params.id);
   res.json({ ok: true });
+});
+
+// --- Munkások ---
+app.get('/api/workers', (req, res) => {
+  res.json(db.prepare('SELECT * FROM workers ORDER BY name').all());
+});
+
+app.post('/api/workers', (req, res) => {
+  const name = (req.body.name || '').trim();
+  const work_start = (req.body.work_start || '07:00').trim();
+  const work_end = (req.body.work_end || '15:00').trim();
+  if (!name) return res.status(400).json({ error: 'Hiányzó név' });
+  try {
+    db.prepare('INSERT OR IGNORE INTO workers (name,work_start,work_end) VALUES (?,?,?)').run(name, work_start, work_end);
+    const w = db.prepare('SELECT * FROM workers WHERE name=?').get(name);
+    res.json({ ok: true, worker: w });
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
+app.put('/api/workers/:id', (req, res) => {
+  const { work_start, work_end } = req.body;
+  if (!work_start || !work_end) return res.status(400).json({ error: 'Hiányzó munkaidő' });
+  db.prepare('UPDATE workers SET work_start=?,work_end=? WHERE id=?').run(work_start, work_end, req.params.id);
+  res.json({ ok: true });
+});
+
+// --- Időmérés rekordok ---
+app.post('/api/time-records', (req, res) => {
+  const { invoice_number, worker_name, supplier, item_count, date, started_at, ended_at, active_seconds, total_seconds } = req.body;
+  if (!invoice_number || !worker_name || !date || !started_at || !ended_at)
+    return res.status(400).json({ error: 'Hiányzó mezők' });
+  try {
+    db.prepare(`INSERT INTO time_records
+      (invoice_number,worker_name,supplier,item_count,date,started_at,ended_at,active_seconds,total_seconds)
+      VALUES (?,?,?,?,?,?,?,?,?)`
+    ).run(
+      invoice_number.trim(), worker_name.trim(), (supplier||'').trim(),
+      Math.max(1, parseInt(item_count)||1), date,
+      started_at, ended_at,
+      Math.max(0, parseInt(active_seconds)||0), Math.max(0, parseInt(total_seconds)||0)
+    );
+    res.status(201).json({ ok: true });
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
+// --- Statisztika ---
+function fmtDate(d) {
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+}
+
+app.get('/api/stats', requireLogin, (req, res) => {
+  const { period = 'day', ref, worker = '', supplier = '', weekends = '1' } = req.query;
+  const showWeekends = weekends !== '0';
+  const refDate = ref ? new Date(ref + 'T00:00:00') : new Date();
+
+  let startDate, endDate;
+  if (period === 'week') {
+    const d = new Date(refDate);
+    const dow = d.getDay();
+    d.setDate(d.getDate() + (dow === 0 ? -6 : 1 - dow));
+    startDate = fmtDate(d);
+    d.setDate(d.getDate() + 6);
+    endDate = fmtDate(d);
+  } else if (period === 'month') {
+    startDate = `${refDate.getFullYear()}-${String(refDate.getMonth()+1).padStart(2,'0')}-01`;
+    endDate = fmtDate(new Date(refDate.getFullYear(), refDate.getMonth()+1, 0));
+  } else {
+    startDate = endDate = fmtDate(refDate);
+  }
+
+  let where = 'WHERE date BETWEEN ? AND ?';
+  const params = [startDate, endDate];
+  if (worker) { where += ' AND worker_name = ?'; params.push(worker); }
+  if (supplier) { where += ' AND supplier = ?'; params.push(supplier); }
+
+  const records = db.prepare(`SELECT * FROM time_records ${where} ORDER BY date,started_at`).all(...params);
+
+  const aggMap = (key) => {
+    const m = {};
+    records.forEach(r => {
+      const k = r[key] || '(nincs)';
+      if (!m[k]) m[k] = { invoices:0, items:0, active_seconds:0 };
+      m[k].invoices++; m[k].items += r.item_count; m[k].active_seconds += r.active_seconds;
+    });
+    return Object.entries(m).map(([k, v]) => ({ [key]: k, ...v,
+      avg_per_item: v.items > 0 ? Math.round(v.active_seconds/v.items) : 0 }));
+  };
+
+  const byDayMap = {};
+  records.forEach(r => {
+    if (!byDayMap[r.date]) byDayMap[r.date] = { invoices:0, items:0, active_seconds:0 };
+    byDayMap[r.date].invoices++; byDayMap[r.date].items += r.item_count;
+    byDayMap[r.date].active_seconds += r.active_seconds;
+  });
+
+  const byDay = [];
+  const cur = new Date(startDate + 'T00:00:00');
+  const endD = new Date(endDate + 'T00:00:00');
+  while (cur <= endD) {
+    const d = fmtDate(cur);
+    const dow = cur.getDay();
+    const isWeekend = dow === 0 || dow === 6;
+    if (showWeekends || !isWeekend) {
+      const data = byDayMap[d] || { invoices:0, items:0, active_seconds:0 };
+      byDay.push({ date:d, is_weekend:isWeekend, ...data,
+        avg_per_item: data.items > 0 ? Math.round(data.active_seconds/data.items) : 0 });
+    }
+    cur.setDate(cur.getDate()+1);
+  }
+
+  const totalItems = records.reduce((s,r)=>s+r.item_count,0);
+  const totalActive = records.reduce((s,r)=>s+r.active_seconds,0);
+
+  const workers = db.prepare('SELECT name FROM workers ORDER BY name').all().map(w=>w.name);
+  const suppliers = db.prepare("SELECT DISTINCT supplier FROM time_records WHERE supplier!='' ORDER BY supplier").all().map(s=>s.supplier);
+
+  res.json({
+    period, startDate, endDate,
+    summary: { invoices:records.length, items:totalItems, active_seconds:totalActive,
+               avg_per_item: totalItems>0 ? Math.round(totalActive/totalItems) : 0 },
+    by_day: byDay,
+    by_worker: aggMap('worker_name').map(r=>({ worker:r.worker_name, ...r })),
+    by_supplier: aggMap('supplier'),
+    workers, suppliers
+  });
 });
 
 const PORT = process.env.PORT || 3000;
