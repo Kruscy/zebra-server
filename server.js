@@ -70,6 +70,8 @@ db.exec(`
 
 // Migrációk
 try { db.exec("ALTER TABLE invoices ADD COLUMN supplier TEXT NOT NULL DEFAULT ''"); } catch(_) {}
+try { db.exec("ALTER TABLE time_records ADD COLUMN packing_seconds INTEGER NOT NULL DEFAULT 0"); } catch(_) {}
+try { db.exec("ALTER TABLE time_records ADD COLUMN problems_seconds INTEGER NOT NULL DEFAULT 0"); } catch(_) {}
 
 // Régi 'admin' átnevezése zkpzebra-ra
 db.prepare("UPDATE users SET username = 'zkpzebra' WHERE username = 'admin'").run();
@@ -314,18 +316,20 @@ app.put('/api/workers/:id', (req, res) => {
 
 // --- Időmérés rekordok ---
 app.post('/api/time-records', (req, res) => {
-  const { invoice_number, worker_name, supplier, item_count, date, started_at, ended_at, active_seconds, total_seconds } = req.body;
+  const { invoice_number, worker_name, supplier, item_count, date, started_at, ended_at,
+          active_seconds, total_seconds, packing_seconds, problems_seconds } = req.body;
   if (!invoice_number || !worker_name || !date || !started_at || !ended_at)
     return res.status(400).json({ error: 'Hiányzó mezők' });
   try {
     db.prepare(`INSERT INTO time_records
-      (invoice_number,worker_name,supplier,item_count,date,started_at,ended_at,active_seconds,total_seconds)
-      VALUES (?,?,?,?,?,?,?,?,?)`
+      (invoice_number,worker_name,supplier,item_count,date,started_at,ended_at,
+       active_seconds,total_seconds,packing_seconds,problems_seconds)
+      VALUES (?,?,?,?,?,?,?,?,?,?,?)`
     ).run(
       invoice_number.trim(), worker_name.trim(), (supplier||'').trim(),
-      Math.max(1, parseInt(item_count)||1), date,
-      started_at, ended_at,
-      Math.max(0, parseInt(active_seconds)||0), Math.max(0, parseInt(total_seconds)||0)
+      Math.max(1, parseInt(item_count)||1), date, started_at, ended_at,
+      Math.max(0, parseInt(active_seconds)||0), Math.max(0, parseInt(total_seconds)||0),
+      Math.max(0, parseInt(packing_seconds)||0), Math.max(0, parseInt(problems_seconds)||0)
     );
     res.status(201).json({ ok: true });
   } catch(e) { res.status(500).json({ error: e.message }); }
@@ -337,12 +341,14 @@ function fmtDate(d) {
 }
 
 app.get('/api/stats', requireLogin, (req, res) => {
-  const { period = 'day', ref, worker = '', supplier = '', weekends = '1' } = req.query;
+  const { period = 'day', ref, from, to, worker = '', supplier = '', weekends = '1' } = req.query;
   const showWeekends = weekends !== '0';
   const refDate = ref ? new Date(ref + 'T00:00:00') : new Date();
 
   let startDate, endDate;
-  if (period === 'week') {
+  if (period === 'custom' && from && to) {
+    startDate = from; endDate = to;
+  } else if (period === 'week') {
     const d = new Date(refDate);
     const dow = d.getDay();
     d.setDate(d.getDate() + (dow === 0 ? -6 : 1 - dow));
@@ -352,6 +358,9 @@ app.get('/api/stats', requireLogin, (req, res) => {
   } else if (period === 'month') {
     startDate = `${refDate.getFullYear()}-${String(refDate.getMonth()+1).padStart(2,'0')}-01`;
     endDate = fmtDate(new Date(refDate.getFullYear(), refDate.getMonth()+1, 0));
+  } else if (period === 'year') {
+    startDate = `${refDate.getFullYear()}-01-01`;
+    endDate = `${refDate.getFullYear()}-12-31`;
   } else {
     startDate = endDate = fmtDate(refDate);
   }
@@ -367,8 +376,11 @@ app.get('/api/stats', requireLogin, (req, res) => {
     const m = {};
     records.forEach(r => {
       const k = r[key] || '(nincs)';
-      if (!m[k]) m[k] = { invoices:0, items:0, active_seconds:0 };
-      m[k].invoices++; m[k].items += r.item_count; m[k].active_seconds += r.active_seconds;
+      if (!m[k]) m[k] = { invoices:0, items:0, active_seconds:0, packing_seconds:0, problems_seconds:0 };
+      m[k].invoices++; m[k].items += r.item_count;
+      m[k].active_seconds += r.active_seconds;
+      m[k].packing_seconds += (r.packing_seconds||0);
+      m[k].problems_seconds += (r.problems_seconds||0);
     });
     return Object.entries(m).map(([k, v]) => ({ [key]: k, ...v,
       avg_per_item: v.items > 0 ? Math.round(v.active_seconds/v.items) : 0 }));
@@ -376,9 +388,11 @@ app.get('/api/stats', requireLogin, (req, res) => {
 
   const byDayMap = {};
   records.forEach(r => {
-    if (!byDayMap[r.date]) byDayMap[r.date] = { invoices:0, items:0, active_seconds:0 };
+    if (!byDayMap[r.date]) byDayMap[r.date] = { invoices:0, items:0, active_seconds:0, packing_seconds:0, problems_seconds:0 };
     byDayMap[r.date].invoices++; byDayMap[r.date].items += r.item_count;
     byDayMap[r.date].active_seconds += r.active_seconds;
+    byDayMap[r.date].packing_seconds += (r.packing_seconds||0);
+    byDayMap[r.date].problems_seconds += (r.problems_seconds||0);
   });
 
   const byDay = [];
@@ -389,30 +403,36 @@ app.get('/api/stats', requireLogin, (req, res) => {
     const dow = cur.getDay();
     const isWeekend = dow === 0 || dow === 6;
     if (showWeekends || !isWeekend) {
-      const data = byDayMap[d] || { invoices:0, items:0, active_seconds:0 };
+      const data = byDayMap[d] || { invoices:0, items:0, active_seconds:0, packing_seconds:0, problems_seconds:0 };
       byDay.push({ date:d, is_weekend:isWeekend, ...data,
         avg_per_item: data.items > 0 ? Math.round(data.active_seconds/data.items) : 0 });
     }
     cur.setDate(cur.getDate()+1);
   }
 
-  const totalItems = records.reduce((s,r)=>s+r.item_count,0);
-  const totalActive = records.reduce((s,r)=>s+r.active_seconds,0);
+  const totalItems    = records.reduce((s,r)=>s+r.item_count,0);
+  const totalActive   = records.reduce((s,r)=>s+r.active_seconds,0);
+  const totalPacking  = records.reduce((s,r)=>s+(r.packing_seconds||0),0);
+  const totalProblems = records.reduce((s,r)=>s+(r.problems_seconds||0),0);
 
   const workers = db.prepare('SELECT name FROM workers ORDER BY name').all().map(w=>w.name);
   const suppliers = db.prepare("SELECT DISTINCT supplier FROM time_records WHERE supplier!='' ORDER BY supplier").all().map(s=>s.supplier);
 
   res.json({
     period, startDate, endDate,
-    summary: { invoices:records.length, items:totalItems, active_seconds:totalActive,
-               avg_per_item: totalItems>0 ? Math.round(totalActive/totalItems) : 0 },
+    summary: {
+      invoices: records.length, items: totalItems,
+      active_seconds: totalActive, avg_per_item: totalItems>0 ? Math.round(totalActive/totalItems) : 0,
+      packing_seconds: totalPacking, problems_seconds: totalProblems
+    },
     by_day: byDay,
     by_worker: aggMap('worker_name').map(r=>({ worker:r.worker_name, ...r })),
     by_supplier: aggMap('supplier'),
     records: records.map(r => ({
       date: r.date, started_at: r.started_at, invoice_number: r.invoice_number,
       supplier: r.supplier, worker_name: r.worker_name, item_count: r.item_count,
-      active_seconds: r.active_seconds,
+      active_seconds: r.active_seconds, packing_seconds: r.packing_seconds||0,
+      problems_seconds: r.problems_seconds||0,
       avg_per_item: r.item_count > 0 ? Math.round(r.active_seconds / r.item_count) : 0
     })),
     workers, suppliers

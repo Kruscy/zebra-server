@@ -56,9 +56,17 @@ document.querySelectorAll('.period-btn').forEach(b => b.addEventListener('click'
   document.querySelectorAll('.period-btn').forEach(x => x.classList.remove('active'));
   b.classList.add('active');
   period = b.dataset.p;
-  updateRefInput();
-  load();
+  const isCustom = period === 'custom';
+  document.getElementById('navStandard').style.display = isCustom ? 'none' : '';
+  document.getElementById('navCustom').style.display = isCustom ? '' : 'none';
+  if (!isCustom) { updateRefInput(); load(); }
 }));
+
+document.getElementById('btnCustomLoad').addEventListener('click', () => {
+  const from = document.getElementById('fromInput').value;
+  const to = document.getElementById('toInput').value;
+  if (from && to && from <= to) load();
+});
 
 document.querySelectorAll('.view-tab').forEach(b => b.addEventListener('click', () => {
   document.querySelectorAll('.view-tab').forEach(x => x.classList.remove('active'));
@@ -79,6 +87,7 @@ function navigate(dir) {
   const d = new Date(refDate + 'T00:00:00');
   if (period === 'day') d.setDate(d.getDate() + dir);
   else if (period === 'week') d.setDate(d.getDate() + dir * 7);
+  else if (period === 'year') d.setFullYear(d.getFullYear() + dir);
   else d.setMonth(d.getMonth() + dir);
   refDate = fmt(d);
   updateRefInput();
@@ -93,6 +102,8 @@ function updateRefInput() {
     refInput.value = fmt(d);
   } else if (period === 'month') {
     refInput.value = refDate.substring(0, 7) + '-01';
+  } else if (period === 'year') {
+    refInput.value = refDate.substring(0, 4) + '-01-01';
   } else {
     refInput.value = refDate;
   }
@@ -113,7 +124,16 @@ async function load() {
   const weekends = (showSat === '1' || showSun === '1') ? '1' : '0';
   document.getElementById('tableArea').innerHTML = '<div class="loading">Betöltés…</div>';
   try {
-    const r = await fetch(`/api/stats?period=${period}&ref=${refDate}&worker=${encodeURIComponent(worker)}&supplier=${encodeURIComponent(supplier)}&weekends=${weekends}&sat=${showSat}&sun=${showSun}`);
+    let url;
+    if (period === 'custom') {
+      const from = document.getElementById('fromInput').value;
+      const to = document.getElementById('toInput').value;
+      if (!from || !to) { document.getElementById('tableArea').innerHTML = '<div class="loading">Add meg a dátumokat!</div>'; return; }
+      url = `/api/stats?period=custom&from=${from}&to=${to}&worker=${encodeURIComponent(worker)}&supplier=${encodeURIComponent(supplier)}&weekends=${weekends}`;
+    } else {
+      url = `/api/stats?period=${period}&ref=${refDate}&worker=${encodeURIComponent(worker)}&supplier=${encodeURIComponent(supplier)}&weekends=${weekends}&sat=${showSat}&sun=${showSun}`;
+    }
+    const r = await fetch(url);
     if (r.status === 401) { location.href = '/'; return; }
     currentData = await r.json();
     renderData(currentData, showSat === '1', showSun === '1');
@@ -132,6 +152,8 @@ function renderData(data, showSat, showSun) {
   document.getElementById('cItems').textContent = data.summary.items || '0';
   document.getElementById('cAvg').textContent = fmtSec(data.summary.avg_per_item);
   document.getElementById('cTotal').textContent = fmtSec(data.summary.active_seconds);
+  document.getElementById('cPacking').textContent = fmtSec(data.summary.packing_seconds);
+  document.getElementById('cProblems').textContent = fmtSec(data.summary.problems_seconds);
 
   const wSel = document.getElementById('selWorker');
   const curW = wSel.value;

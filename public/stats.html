@@ -72,11 +72,19 @@ table.detail-table tr.detail-row:hover td{background:#EEF2FF}
       <button class="period-btn active" data-p="day">Nap</button>
       <button class="period-btn" data-p="week">Hét</button>
       <button class="period-btn" data-p="month">Hónap</button>
-      <div class="date-nav" style="margin-left:auto">
+      <button class="period-btn" data-p="year">Év</button>
+      <button class="period-btn" data-p="custom">Egyéni</button>
+      <div class="date-nav" style="margin-left:auto" id="navStandard">
         <button class="nav-btn" id="btnPrev">‹</button>
         <input type="date" id="refInput">
         <button class="nav-btn" id="btnNext">›</button>
         <button class="nav-btn" id="btnToday" title="Ma">●</button>
+      </div>
+      <div class="date-nav" id="navCustom" style="display:none;gap:6px;align-items:center">
+        <input type="date" id="fromInput" style="padding:7px 10px;border:2px solid #E5E7EB;border-radius:10px;font-size:14px">
+        <span style="color:#888">–</span>
+        <input type="date" id="toInput" style="padding:7px 10px;border:2px solid #E5E7EB;border-radius:10px;font-size:14px">
+        <button class="nav-btn" id="btnCustomLoad" style="padding:7px 16px;font-size:13px;font-weight:700;background:#4361EE;color:white;border-color:#4361EE">Betölt</button>
       </div>
     </div>
     <div class="filter-row">
@@ -94,6 +102,8 @@ table.detail-table tr.detail-row:hover td{background:#EEF2FF}
     <div class="card"><div class="card-val" id="cItems">–</div><div class="card-lbl">Tételek</div></div>
     <div class="card"><div class="card-val" id="cAvg">–</div><div class="card-lbl">Átlag / tétel</div></div>
     <div class="card"><div class="card-val" id="cTotal">–</div><div class="card-lbl">Összes aktív idő</div></div>
+    <div class="card"><div class="card-val" style="color:#D97706" id="cPacking">–</div><div class="card-lbl">📦 Pakolás</div></div>
+    <div class="card"><div class="card-val" style="color:#EF4444" id="cProblems">–</div><div class="card-lbl">🔍 Hiányzóak</div></div>
   </div>
 
   <!-- Nézet váltó -->
