@@ -23,8 +23,37 @@ function fmtHu(dateStr) {
   return `${d.getFullYear()}. ${months[d.getMonth()]}. ${String(d.getDate()).padStart(2,'0')}. (${days[d.getDay()]})`;
 }
 
+function invoiceSubTable(recs, showDate) {
+  if (!recs.length) return '<tr><td colspan="7" style="text-align:center;color:#CCC;padding:12px;font-size:13px">Nincs rekord</td></tr>';
+  return recs.map(r => `<tr class="detail-row">
+    <td></td>
+    ${showDate ? `<td style="font-size:12px;color:#888;white-space:nowrap">${r.date}<br><span style="color:#BBB">${r.started_at.substring(0,5)}</span></td>` : `<td style="font-size:12px;color:#888">${r.started_at.substring(0,5)}</td>`}
+    <td><strong style="font-size:13px">${r.invoice_number}</strong></td>
+    <td style="font-size:13px">${r.supplier||'–'}</td>
+    <td style="font-size:13px">${r.worker_name||'–'}</td>
+    <td style="text-align:right;font-size:13px">${r.item_count}</td>
+    <td style="text-align:right;font-weight:700;color:#4361EE;font-size:13px">${fmtSec(r.active_seconds)}</td>
+    <td style="text-align:right;color:#888;font-size:13px">${fmtSec(r.avg_per_item)}</td>
+  </tr>`).join('');
+}
+
+function attachExpand() {
+  document.querySelectorAll('#tableArea tr.main-row').forEach(tr => {
+    tr.addEventListener('click', () => {
+      const idx = tr.dataset.idx;
+      const detail = document.getElementById('detail-' + idx);
+      if (!detail) return;
+      const icon = tr.querySelector('.tog');
+      const open = detail.style.display !== 'none';
+      detail.style.display = open ? 'none' : '';
+      icon.textContent = open ? '▶' : '▼';
+      tr.classList.toggle('row-open', !open);
+    });
+  });
+}
+
 document.querySelectorAll('.period-btn').forEach(b => b.addEventListener('click', () => {
-  document.querySelectorAll('.period-btn').forEach(x=>x.classList.remove('active'));
+  document.querySelectorAll('.period-btn').forEach(x => x.classList.remove('active'));
   b.classList.add('active');
   period = b.dataset.p;
   updateRefInput();
@@ -32,12 +61,11 @@ document.querySelectorAll('.period-btn').forEach(b => b.addEventListener('click'
 }));
 
 document.querySelectorAll('.view-tab').forEach(b => b.addEventListener('click', () => {
-  document.querySelectorAll('.view-tab').forEach(x=>x.classList.remove('active'));
+  document.querySelectorAll('.view-tab').forEach(x => x.classList.remove('active'));
   b.classList.add('active');
   view = b.dataset.v;
   renderCurrentData();
 }));
-
 
 const refInput = document.getElementById('refInput');
 refInput.value = refDate;
@@ -50,20 +78,21 @@ document.getElementById('btnToday').addEventListener('click', () => { refDate = 
 function navigate(dir) {
   const d = new Date(refDate + 'T00:00:00');
   if (period === 'day') d.setDate(d.getDate() + dir);
-  else if (period === 'week') d.setDate(d.getDate() + dir*7);
+  else if (period === 'week') d.setDate(d.getDate() + dir * 7);
   else d.setMonth(d.getMonth() + dir);
   refDate = fmt(d);
   updateRefInput();
   load();
 }
+
 function updateRefInput() {
   if (period === 'week') {
     const d = new Date(refDate + 'T00:00:00');
     const dow = d.getDay();
-    d.setDate(d.getDate() + (dow===0?-6:1-dow));
+    d.setDate(d.getDate() + (dow === 0 ? -6 : 1 - dow));
     refInput.value = fmt(d);
   } else if (period === 'month') {
-    refInput.value = refDate.substring(0,7) + '-01';
+    refInput.value = refDate.substring(0, 7) + '-01';
   } else {
     refInput.value = refDate;
   }
@@ -81,16 +110,14 @@ async function load() {
   const supplier = document.getElementById('selSupplier').value;
   const showSat = document.getElementById('chkSat').checked ? '1' : '0';
   const showSun = document.getElementById('chkSun').checked ? '1' : '0';
-  const weekends = (showSat==='1'||showSun==='1') ? '1' : '0';
-
+  const weekends = (showSat === '1' || showSun === '1') ? '1' : '0';
   document.getElementById('tableArea').innerHTML = '<div class="loading">Betöltés…</div>';
-
   try {
     const r = await fetch(`/api/stats?period=${period}&ref=${refDate}&worker=${encodeURIComponent(worker)}&supplier=${encodeURIComponent(supplier)}&weekends=${weekends}&sat=${showSat}&sun=${showSun}`);
     if (r.status === 401) { location.href = '/'; return; }
     currentData = await r.json();
-    renderData(currentData, showSat==='1', showSun==='1');
-  } catch(e) {
+    renderData(currentData, showSat === '1', showSun === '1');
+  } catch (e) {
     document.getElementById('tableArea').innerHTML = `<div class="loading">Hiba: ${e.message}</div>`;
   }
 }
@@ -101,7 +128,6 @@ function renderData(data, showSat, showSun) {
   } else {
     document.getElementById('rangeLabel').textContent = `${fmtHu(data.startDate)} – ${fmtHu(data.endDate)}`;
   }
-
   document.getElementById('cInvoices').textContent = data.summary.invoices || '0';
   document.getElementById('cItems').textContent = data.summary.items || '0';
   document.getElementById('cAvg').textContent = fmtSec(data.summary.avg_per_item);
@@ -110,7 +136,7 @@ function renderData(data, showSat, showSun) {
   const wSel = document.getElementById('selWorker');
   const curW = wSel.value;
   wSel.innerHTML = '<option value="">Minden dolgozó</option>';
-  (data.workers||[]).forEach(w => {
+  (data.workers || []).forEach(w => {
     const o = document.createElement('option');
     o.value = w; o.textContent = w;
     if (w === curW) o.selected = true;
@@ -120,7 +146,7 @@ function renderData(data, showSat, showSun) {
   const sSel = document.getElementById('selSupplier');
   const curS = sSel.value;
   sSel.innerHTML = '<option value="">Minden szállító</option>';
-  (data.suppliers||[]).forEach(s => {
+  (data.suppliers || []).forEach(s => {
     const o = document.createElement('option');
     o.value = s; o.textContent = s;
     if (s === curS) o.selected = true;
@@ -138,74 +164,114 @@ function renderCurrentData() {
   const data = currentData;
   const showSat = data._showSat !== false;
   const showSun = data._showSun !== false;
+  const allRecs = data.records || [];
+
+  // Sub-table header (no date col for day view, with date for worker/supplier)
+  function subHeader(showDate) {
+    return `<tr class="detail-header">
+      <th></th>
+      <th>${showDate ? 'Dátum' : 'Időpont'}</th>
+      <th>Számlaszám</th><th>Szállító</th><th>Dolgozó</th>
+      <th style="text-align:right">Tételek</th>
+      <th style="text-align:right">Aktív idő</th>
+      <th style="text-align:right">Átlag/tétel</th>
+    </tr>`;
+  }
 
   if (view === 'day') {
-    const rows = (data.by_day||[]).filter(r => {
-      const dow = new Date(r.date+'T00:00:00').getDay();
-      if (dow===6 && !showSat) return false;
-      if (dow===0 && !showSun) return false;
+    const rows = (data.by_day || []).filter(r => {
+      const dow = new Date(r.date + 'T00:00:00').getDay();
+      if (dow === 6 && !showSat) return false;
+      if (dow === 0 && !showSun) return false;
       return true;
     });
-    const html = `<table>
-      <tr><th>Dátum</th><th>Számlák</th><th>Tételek</th><th>Aktív idő</th><th>Átlag/tétel</th></tr>
-      ${rows.length ? rows.map(r => {
-        const dow = new Date(r.date+'T00:00:00').getDay();
-        const cls = r.invoices===0 ? 'empty' : (dow===6?'saturday':dow===0?'sunday':'');
-        return `<tr class="${cls}">
+
+    let html = `<table>
+      <tr><th style="width:28px"></th><th>Dátum</th><th>Számlák</th><th>Tételek</th><th>Aktív idő</th><th>Átlag/tétel</th></tr>`;
+
+    if (!rows.length) {
+      html += '<tr><td colspan="6" style="text-align:center;color:#CCC;padding:30px">Nincs adat</td></tr>';
+    } else {
+      rows.forEach((r, i) => {
+        const dow = new Date(r.date + 'T00:00:00').getDay();
+        const cls = r.invoices === 0 ? 'empty' : (dow === 6 ? 'saturday' : dow === 0 ? 'sunday' : '');
+        const recs = allRecs.filter(x => x.date === r.date);
+        const hasRecs = recs.length > 0;
+        html += `<tr class="main-row ${cls}" data-idx="${i}" style="cursor:${hasRecs ? 'pointer' : 'default'}">
+          <td><span class="tog" style="color:#4361EE;font-size:11px;font-weight:700">${hasRecs ? '▶' : ''}</span></td>
           <td>${fmtHu(r.date)}</td>
-          <td>${r.invoices||'–'}</td>
-          <td>${r.items||'–'}</td>
+          <td>${r.invoices || '–'}</td>
+          <td>${r.items || '–'}</td>
           <td>${fmtSec(r.active_seconds)}</td>
           <td>${fmtSec(r.avg_per_item)}</td>
         </tr>`;
-      }).join('') : '<tr><td colspan="5" style="text-align:center;color:#CCC;padding:30px">Nincs adat</td></tr>'}
-    </table>`;
+        if (hasRecs) {
+          html += `<tr id="detail-${i}" style="display:none"><td colspan="6" style="padding:0">
+            <table class="detail-table">${subHeader(false)}${invoiceSubTable(recs, false)}</table>
+          </td></tr>`;
+        }
+      });
+    }
+    html += '</table>';
     document.getElementById('tableArea').innerHTML = html;
+    attachExpand();
 
   } else if (view === 'worker') {
-    const rows = data.by_worker||[];
-    const html = `<table>
-      <tr><th>Dolgozó</th><th>Számlák</th><th>Tételek</th><th>Aktív idő</th><th>Átlag/tétel</th></tr>
-      ${rows.length ? rows.map(r => `<tr>
-        <td>${r.worker||r.worker_name||'–'}</td>
-        <td>${r.invoices}</td><td>${r.items}</td>
-        <td>${fmtSec(r.active_seconds)}</td><td>${fmtSec(r.avg_per_item)}</td>
-      </tr>`).join('') : '<tr><td colspan="5" style="text-align:center;color:#CCC;padding:30px">Nincs adat</td></tr>'}
-    </table>`;
+    const rows = data.by_worker || [];
+    let html = `<table>
+      <tr><th style="width:28px"></th><th>Dolgozó</th><th>Számlák</th><th>Tételek</th><th>Aktív idő</th><th>Átlag/tétel</th></tr>`;
+
+    if (!rows.length) {
+      html += '<tr><td colspan="6" style="text-align:center;color:#CCC;padding:30px">Nincs adat</td></tr>';
+    } else {
+      rows.forEach((r, i) => {
+        const workerName = r.worker || r.worker_name || '';
+        const recs = allRecs.filter(x => x.worker_name === workerName);
+        html += `<tr class="main-row" data-idx="${i}" style="cursor:pointer">
+          <td><span class="tog" style="color:#4361EE;font-size:11px;font-weight:700">▶</span></td>
+          <td>${workerName || '–'}</td>
+          <td>${r.invoices}</td><td>${r.items}</td>
+          <td>${fmtSec(r.active_seconds)}</td><td>${fmtSec(r.avg_per_item)}</td>
+        </tr>
+        <tr id="detail-${i}" style="display:none"><td colspan="6" style="padding:0">
+          <table class="detail-table">${subHeader(true)}${invoiceSubTable(recs, true)}</table>
+        </td></tr>`;
+      });
+    }
+    html += '</table>';
     document.getElementById('tableArea').innerHTML = html;
+    attachExpand();
 
   } else if (view === 'supplier') {
-    const rows = data.by_supplier||[];
-    const html = `<table>
-      <tr><th>Szállító</th><th>Számlák</th><th>Tételek</th><th>Aktív idő</th><th>Átlag/tétel</th></tr>
-      ${rows.length ? rows.map(r => `<tr>
-        <td>${r.supplier||'(nincs szállító)'}</td>
-        <td>${r.invoices}</td><td>${r.items}</td>
-        <td>${fmtSec(r.active_seconds)}</td><td>${fmtSec(r.avg_per_item)}</td>
-      </tr>`).join('') : '<tr><td colspan="5" style="text-align:center;color:#CCC;padding:30px">Nincs adat</td></tr>'}
-    </table>`;
-    document.getElementById('tableArea').innerHTML = html;
+    const rows = data.by_supplier || [];
+    let html = `<table>
+      <tr><th style="width:28px"></th><th>Szállító</th><th>Számlák</th><th>Tételek</th><th>Aktív idő</th><th>Átlag/tétel</th></tr>`;
 
-  } else if (view === 'invoice') {
-    const rows = data.records||[];
-    const html = `<table>
-      <tr><th>Dátum</th><th>Számlaszám</th><th>Szállító</th><th>Dolgozó</th><th style="text-align:right">Tételek</th><th style="text-align:right">Aktív idő</th><th style="text-align:right">Átlag/tétel</th></tr>
-      ${rows.length ? rows.map(r => `<tr>
-        <td style="white-space:nowrap;color:#888;font-size:12px">${r.date}<br><span style="color:#BBB">${r.started_at}</span></td>
-        <td><strong>${r.invoice_number}</strong></td>
-        <td>${r.supplier||'–'}</td>
-        <td>${r.worker_name||'–'}</td>
-        <td style="text-align:right">${r.item_count}</td>
-        <td style="text-align:right;font-weight:700;color:#4361EE">${fmtSec(r.active_seconds)}</td>
-        <td style="text-align:right;color:#888">${fmtSec(r.avg_per_item)}</td>
-      </tr>`).join('') : '<tr><td colspan="7" style="text-align:center;color:#CCC;padding:30px">Nincs adat</td></tr>'}
-    </table>`;
+    if (!rows.length) {
+      html += '<tr><td colspan="6" style="text-align:center;color:#CCC;padding:30px">Nincs adat</td></tr>';
+    } else {
+      rows.forEach((r, i) => {
+        const supplierName = r.supplier || '';
+        const recs = allRecs.filter(x => x.supplier === supplierName);
+        html += `<tr class="main-row" data-idx="${i}" style="cursor:pointer">
+          <td><span class="tog" style="color:#4361EE;font-size:11px;font-weight:700">▶</span></td>
+          <td>${supplierName || '(nincs szállító)'}</td>
+          <td>${r.invoices}</td><td>${r.items}</td>
+          <td>${fmtSec(r.active_seconds)}</td><td>${fmtSec(r.avg_per_item)}</td>
+        </tr>
+        <tr id="detail-${i}" style="display:none"><td colspan="6" style="padding:0">
+          <table class="detail-table">${subHeader(true)}${invoiceSubTable(recs, true)}</table>
+        </td></tr>`;
+      });
+    }
+    html += '</table>';
     document.getElementById('tableArea').innerHTML = html;
+    attachExpand();
   }
 }
 
 (async () => {
-  const me = await fetch('/api/me').then(r=>r.json()).catch(()=>({loggedIn:false}));
+  const me = await fetch('/api/me').then(r => r.json()).catch(() => ({ loggedIn: false }));
   if (!me.loggedIn) { location.href = '/'; return; }
   updateRefInput();
   await load();

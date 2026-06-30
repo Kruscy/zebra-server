@@ -44,6 +44,14 @@ tr.sunday td:first-child::after{content:" (vas)";font-size:11px;color:#EF4444}
 .nav-btn{padding:6px 12px;border:2px solid #E5E7EB;border-radius:8px;background:white;cursor:pointer;font-size:16px;color:#555;line-height:1}
 .nav-btn:hover{border-color:#4361EE;color:#4361EE}
 .range-label{font-size:13px;color:#555;font-weight:600;min-width:160px;text-align:center}
+tr.main-row:hover td{background:#F5F7FF}
+tr.row-open td{background:#EEF2FF}
+tr.row-open .tog{color:#4361EE}
+table.detail-table{width:100%;border-collapse:collapse;background:#F8F9FF}
+table.detail-table tr.detail-header th{background:#E8EDFF;color:#4361EE;font-size:11px;padding:7px 8px;border-bottom:2px solid #C7D2FE}
+table.detail-table tr.detail-row td{padding:8px 8px;border-bottom:1px solid #EEF2FF;vertical-align:middle}
+table.detail-table tr.detail-row:last-child td{border-bottom:none}
+table.detail-table tr.detail-row:hover td{background:#EEF2FF}
 @media(max-width:600px){
   .card-row{grid-template-columns:1fr 1fr}
   .card-val{font-size:20px}
@@ -93,7 +101,6 @@ tr.sunday td:first-child::after{content:" (vas)";font-size:11px;color:#EF4444}
     <button class="view-tab active" data-v="day">Naponta</button>
     <button class="view-tab" data-v="worker">Dolgozónként</button>
     <button class="view-tab" data-v="supplier">Szállítónként</button>
-    <button class="view-tab" data-v="invoice">Számlánként</button>
   </div>
 
   <!-- Táblázat -->
