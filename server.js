@@ -66,6 +66,18 @@ db.exec(`
     total_seconds INTEGER NOT NULL,
     created_at TEXT NOT NULL DEFAULT (datetime('now','localtime'))
   );
+  CREATE TABLE IF NOT EXISTS activity_sessions (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    worker_name TEXT NOT NULL,
+    type TEXT NOT NULL,
+    date TEXT NOT NULL,
+    started_at TEXT NOT NULL,
+    ended_at TEXT,
+    expected_end TEXT,
+    duration_seconds INTEGER,
+    invoice_ref TEXT NOT NULL DEFAULT '',
+    created_at TEXT NOT NULL DEFAULT (datetime('now','localtime'))
+  );
 `);
 
 // Migrációk
@@ -312,6 +324,37 @@ app.put('/api/workers/:id', (req, res) => {
   if (!work_start || !work_end) return res.status(400).json({ error: 'Hiányzó munkaidő' });
   db.prepare('UPDATE workers SET work_start=?,work_end=? WHERE id=?').run(work_start, work_end, req.params.id);
   res.json({ ok: true });
+});
+
+// --- Aktivitás session-ök (pakolás / hiányzóak) ---
+app.post('/api/sessions', (req, res) => {
+  const { worker_name, type, date, started_at, expected_end, invoice_ref } = req.body;
+  if (!worker_name || !type || !date || !started_at)
+    return res.status(400).json({ error: 'Hiányzó mezők' });
+  try {
+    const r = db.prepare(
+      `INSERT INTO activity_sessions (worker_name,type,date,started_at,expected_end,invoice_ref)
+       VALUES (?,?,?,?,?,?)`
+    ).run(worker_name.trim(), type, date, started_at, expected_end||null, (invoice_ref||'').trim());
+    res.json({ ok: true, id: r.lastInsertRowid });
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
+app.put('/api/sessions/:id', (req, res) => {
+  const { ended_at, duration_seconds } = req.body;
+  if (!ended_at) return res.status(400).json({ error: 'Hiányzó ended_at' });
+  db.prepare(
+    `UPDATE activity_sessions SET ended_at=?, duration_seconds=? WHERE id=?`
+  ).run(ended_at, Math.max(0, parseInt(duration_seconds)||0), req.params.id);
+  res.json({ ok: true });
+});
+
+app.get('/api/sessions', requireLogin, (req, res) => {
+  const { date, worker } = req.query;
+  let where = ''; const params = [];
+  if (date) { where += ' WHERE date=?'; params.push(date); }
+  if (worker) { where += (where ? ' AND' : ' WHERE') + ' worker_name=?'; params.push(worker); }
+  res.json(db.prepare(`SELECT * FROM activity_sessions${where} ORDER BY date,started_at`).all(...params));
 });
 
 // --- Időmérés rekordok ---
