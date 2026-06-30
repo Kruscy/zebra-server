@@ -409,6 +409,12 @@ app.get('/api/stats', requireLogin, (req, res) => {
     by_day: byDay,
     by_worker: aggMap('worker_name').map(r=>({ worker:r.worker_name, ...r })),
     by_supplier: aggMap('supplier'),
+    records: records.map(r => ({
+      date: r.date, started_at: r.started_at, invoice_number: r.invoice_number,
+      supplier: r.supplier, worker_name: r.worker_name, item_count: r.item_count,
+      active_seconds: r.active_seconds,
+      avg_per_item: r.item_count > 0 ? Math.round(r.active_seconds / r.item_count) : 0
+    })),
     workers, suppliers
   });
 });

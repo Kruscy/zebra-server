@@ -38,6 +38,7 @@ document.querySelectorAll('.view-tab').forEach(b => b.addEventListener('click', 
   renderCurrentData();
 }));
 
+
 const refInput = document.getElementById('refInput');
 refInput.value = refDate;
 refInput.addEventListener('change', () => { refDate = refInput.value || today(); load(); });
@@ -182,6 +183,22 @@ function renderCurrentData() {
         <td>${r.invoices}</td><td>${r.items}</td>
         <td>${fmtSec(r.active_seconds)}</td><td>${fmtSec(r.avg_per_item)}</td>
       </tr>`).join('') : '<tr><td colspan="5" style="text-align:center;color:#CCC;padding:30px">Nincs adat</td></tr>'}
+    </table>`;
+    document.getElementById('tableArea').innerHTML = html;
+
+  } else if (view === 'invoice') {
+    const rows = data.records||[];
+    const html = `<table>
+      <tr><th>Dátum</th><th>Számlaszám</th><th>Szállító</th><th>Dolgozó</th><th style="text-align:right">Tételek</th><th style="text-align:right">Aktív idő</th><th style="text-align:right">Átlag/tétel</th></tr>
+      ${rows.length ? rows.map(r => `<tr>
+        <td style="white-space:nowrap;color:#888;font-size:12px">${r.date}<br><span style="color:#BBB">${r.started_at}</span></td>
+        <td><strong>${r.invoice_number}</strong></td>
+        <td>${r.supplier||'–'}</td>
+        <td>${r.worker_name||'–'}</td>
+        <td style="text-align:right">${r.item_count}</td>
+        <td style="text-align:right;font-weight:700;color:#4361EE">${fmtSec(r.active_seconds)}</td>
+        <td style="text-align:right;color:#888">${fmtSec(r.avg_per_item)}</td>
+      </tr>`).join('') : '<tr><td colspan="7" style="text-align:center;color:#CCC;padding:30px">Nincs adat</td></tr>'}
     </table>`;
     document.getElementById('tableArea').innerHTML = html;
   }
