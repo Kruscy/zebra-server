@@ -84,6 +84,7 @@ db.exec(`
 try { db.exec("ALTER TABLE invoices ADD COLUMN supplier TEXT NOT NULL DEFAULT ''"); } catch(_) {}
 try { db.exec("ALTER TABLE time_records ADD COLUMN packing_seconds INTEGER NOT NULL DEFAULT 0"); } catch(_) {}
 try { db.exec("ALTER TABLE time_records ADD COLUMN problems_seconds INTEGER NOT NULL DEFAULT 0"); } catch(_) {}
+try { db.exec("ALTER TABLE time_records ADD COLUMN worker_name_2 TEXT NOT NULL DEFAULT ''"); } catch(_) {}
 
 // Régi 'admin' átnevezése zkpzebra-ra
 db.prepare("UPDATE users SET username = 'zkpzebra' WHERE username = 'admin'").run();
@@ -359,17 +360,17 @@ app.get('/api/sessions', requireLogin, (req, res) => {
 
 // --- Időmérés rekordok ---
 app.post('/api/time-records', (req, res) => {
-  const { invoice_number, worker_name, supplier, item_count, date, started_at, ended_at,
+  const { invoice_number, worker_name, worker_name_2, supplier, item_count, date, started_at, ended_at,
           active_seconds, total_seconds, packing_seconds, problems_seconds } = req.body;
   if (!invoice_number || !worker_name || !date || !started_at || !ended_at)
     return res.status(400).json({ error: 'Hiányzó mezők' });
   try {
     db.prepare(`INSERT INTO time_records
-      (invoice_number,worker_name,supplier,item_count,date,started_at,ended_at,
+      (invoice_number,worker_name,worker_name_2,supplier,item_count,date,started_at,ended_at,
        active_seconds,total_seconds,packing_seconds,problems_seconds)
-      VALUES (?,?,?,?,?,?,?,?,?,?,?)`
+      VALUES (?,?,?,?,?,?,?,?,?,?,?,?)`
     ).run(
-      invoice_number.trim(), worker_name.trim(), (supplier||'').trim(),
+      invoice_number.trim(), worker_name.trim(), (worker_name_2||'').trim(), (supplier||'').trim(),
       Math.max(1, parseInt(item_count)||1), date, started_at, ended_at,
       Math.max(0, parseInt(active_seconds)||0), Math.max(0, parseInt(total_seconds)||0),
       Math.max(0, parseInt(packing_seconds)||0), Math.max(0, parseInt(problems_seconds)||0)
@@ -410,7 +411,7 @@ app.get('/api/stats', requireLogin, (req, res) => {
 
   let where = 'WHERE date BETWEEN ? AND ?';
   const params = [startDate, endDate];
-  if (worker) { where += ' AND worker_name = ?'; params.push(worker); }
+  if (worker) { where += ' AND (worker_name = ? OR worker_name_2 = ?)'; params.push(worker, worker); }
   if (supplier) { where += ' AND supplier = ?'; params.push(supplier); }
 
   const records = db.prepare(`SELECT * FROM time_records ${where} ORDER BY date,started_at`).all(...params);
@@ -426,6 +427,25 @@ app.get('/api/stats', requireLogin, (req, res) => {
       m[k].problems_seconds += (r.problems_seconds||0);
     });
     return Object.entries(m).map(([k, v]) => ({ [key]: k, ...v,
+      avg_per_item: v.items > 0 ? Math.round(v.active_seconds/v.items) : 0 }));
+  };
+
+  // Dolgozónkénti aggregáció: ha két dolgozó van, mindkettőnél számolja
+  const aggWorker = () => {
+    const m = {};
+    const add = (name, r) => {
+      if (!name) return;
+      if (!m[name]) m[name] = { invoices:0, items:0, active_seconds:0, packing_seconds:0, problems_seconds:0 };
+      m[name].invoices++; m[name].items += r.item_count;
+      m[name].active_seconds += r.active_seconds;
+      m[name].packing_seconds += (r.packing_seconds||0);
+      m[name].problems_seconds += (r.problems_seconds||0);
+    };
+    records.forEach(r => {
+      add(r.worker_name, r);
+      if (r.worker_name_2) add(r.worker_name_2, r);
+    });
+    return Object.entries(m).map(([k, v]) => ({ worker_name: k, worker: k, ...v,
       avg_per_item: v.items > 0 ? Math.round(v.active_seconds/v.items) : 0 }));
   };
 
@@ -469,11 +489,11 @@ app.get('/api/stats', requireLogin, (req, res) => {
       packing_seconds: totalPacking, problems_seconds: totalProblems
     },
     by_day: byDay,
-    by_worker: aggMap('worker_name').map(r=>({ worker:r.worker_name, ...r })),
+    by_worker: aggWorker(),
     by_supplier: aggMap('supplier'),
     records: records.map(r => ({
       date: r.date, started_at: r.started_at, invoice_number: r.invoice_number,
-      supplier: r.supplier, worker_name: r.worker_name, item_count: r.item_count,
+      supplier: r.supplier, worker_name: r.worker_name, worker_name_2: r.worker_name_2||'', item_count: r.item_count,
       active_seconds: r.active_seconds, packing_seconds: r.packing_seconds||0,
       problems_seconds: r.problems_seconds||0,
       avg_per_item: r.item_count > 0 ? Math.round(r.active_seconds / r.item_count) : 0

@@ -25,16 +25,21 @@ function fmtHu(dateStr) {
 
 function invoiceSubTable(recs, showDate) {
   if (!recs.length) return '<tr><td colspan="7" style="text-align:center;color:#CCC;padding:12px;font-size:13px">Nincs rekord</td></tr>';
-  return recs.map(r => `<tr class="detail-row">
+  return recs.map(r => {
+    const workerCell = r.worker_name_2
+      ? `${r.worker_name||'–'} <span style="font-size:11px;background:#EEF2FF;color:#4361EE;border-radius:8px;padding:1px 6px">+${r.worker_name_2}</span>`
+      : (r.worker_name||'–');
+    return `<tr class="detail-row">
     <td></td>
     ${showDate ? `<td style="font-size:12px;color:#888;white-space:nowrap">${r.date}<br><span style="color:#BBB">${r.started_at.substring(0,5)}</span></td>` : `<td style="font-size:12px;color:#888">${r.started_at.substring(0,5)}</td>`}
     <td><strong style="font-size:13px">${r.invoice_number}</strong></td>
     <td style="font-size:13px">${r.supplier||'–'}</td>
-    <td style="font-size:13px">${r.worker_name||'–'}</td>
+    <td style="font-size:13px">${workerCell}</td>
     <td style="text-align:right;font-size:13px">${r.item_count}</td>
     <td style="text-align:right;font-weight:700;color:#4361EE;font-size:13px">${fmtSec(r.active_seconds)}</td>
     <td style="text-align:right;color:#888;font-size:13px">${fmtSec(r.avg_per_item)}</td>
-  </tr>`).join('');
+  </tr>`;
+  }).join('');
 }
 
 function attachExpand() {
