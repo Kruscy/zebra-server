@@ -122,6 +122,8 @@ app.use(session({
 }));
 app.use(express.static(path.join(__dirname, 'public')));
 
+app.get('/stats', (req, res) => res.sendFile(path.join(__dirname, 'public', 'stats.html')));
+
 const sseClients = new Set();
 function notifyClients() {
   sseClients.forEach(r => { try { r.write('data: update\n\n'); } catch(_) {} });
