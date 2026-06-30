@@ -200,6 +200,8 @@ function renderCurrentData() {
     </tr>`;
   }
 
+  const COLS = 8;
+
   if (view === 'day') {
     const rows = (data.by_day || []).filter(r => {
       const dow = new Date(r.date + 'T00:00:00').getDay();
@@ -209,10 +211,10 @@ function renderCurrentData() {
     });
 
     let html = `<table>
-      <tr><th style="width:28px"></th><th>Dátum</th><th>Számlák</th><th>Tételek</th><th>Aktív idő</th><th>Átlag/tétel</th></tr>`;
+      <tr><th style="width:28px"></th><th>Dátum</th><th>Számlák</th><th>Tételek</th><th>Aktív idő</th><th style="color:#D97706">📦 Pakolás</th><th style="color:#EF4444">🔍 Hiányzóak</th><th>Átlag/tétel</th></tr>`;
 
     if (!rows.length) {
-      html += '<tr><td colspan="6" style="text-align:center;color:#CCC;padding:30px">Nincs adat</td></tr>';
+      html += `<tr><td colspan="${COLS}" style="text-align:center;color:#CCC;padding:30px">Nincs adat</td></tr>`;
     } else {
       rows.forEach((r, i) => {
         const dow = new Date(r.date + 'T00:00:00').getDay();
@@ -225,10 +227,12 @@ function renderCurrentData() {
           <td>${r.invoices || '–'}</td>
           <td>${r.items || '–'}</td>
           <td>${fmtSec(r.active_seconds)}</td>
+          <td style="color:${r.packing_seconds>0?'#D97706':'#CCC'}">${r.packing_seconds>0?fmtSec(r.packing_seconds):'–'}</td>
+          <td style="color:${r.problems_seconds>0?'#EF4444':'#CCC'}">${r.problems_seconds>0?fmtSec(r.problems_seconds):'–'}</td>
           <td>${fmtSec(r.avg_per_item)}</td>
         </tr>`;
         if (hasRecs) {
-          html += `<tr id="detail-${i}" style="display:none"><td colspan="6" style="padding:0">
+          html += `<tr id="detail-${i}" style="display:none"><td colspan="${COLS}" style="padding:0">
             <table class="detail-table">${subHeader(false)}${invoiceSubTable(recs, false)}</table>
           </td></tr>`;
         }
@@ -241,10 +245,10 @@ function renderCurrentData() {
   } else if (view === 'worker') {
     const rows = data.by_worker || [];
     let html = `<table>
-      <tr><th style="width:28px"></th><th>Dolgozó</th><th>Számlák</th><th>Tételek</th><th>Aktív idő</th><th>Átlag/tétel</th></tr>`;
+      <tr><th style="width:28px"></th><th>Dolgozó</th><th>Számlák</th><th>Tételek</th><th>Aktív idő</th><th style="color:#D97706">📦 Pakolás</th><th style="color:#EF4444">🔍 Hiányzóak</th><th>Átlag/tétel</th></tr>`;
 
     if (!rows.length) {
-      html += '<tr><td colspan="6" style="text-align:center;color:#CCC;padding:30px">Nincs adat</td></tr>';
+      html += `<tr><td colspan="${COLS}" style="text-align:center;color:#CCC;padding:30px">Nincs adat</td></tr>`;
     } else {
       rows.forEach((r, i) => {
         const workerName = r.worker || r.worker_name || '';
@@ -253,9 +257,12 @@ function renderCurrentData() {
           <td><span class="tog" style="color:#4361EE;font-size:11px;font-weight:700">▶</span></td>
           <td>${workerName || '–'}</td>
           <td>${r.invoices}</td><td>${r.items}</td>
-          <td>${fmtSec(r.active_seconds)}</td><td>${fmtSec(r.avg_per_item)}</td>
+          <td>${fmtSec(r.active_seconds)}</td>
+          <td style="color:${r.packing_seconds>0?'#D97706':'#CCC'}">${r.packing_seconds>0?fmtSec(r.packing_seconds):'–'}</td>
+          <td style="color:${r.problems_seconds>0?'#EF4444':'#CCC'}">${r.problems_seconds>0?fmtSec(r.problems_seconds):'–'}</td>
+          <td>${fmtSec(r.avg_per_item)}</td>
         </tr>
-        <tr id="detail-${i}" style="display:none"><td colspan="6" style="padding:0">
+        <tr id="detail-${i}" style="display:none"><td colspan="${COLS}" style="padding:0">
           <table class="detail-table">${subHeader(true)}${invoiceSubTable(recs, true)}</table>
         </td></tr>`;
       });
@@ -267,10 +274,10 @@ function renderCurrentData() {
   } else if (view === 'supplier') {
     const rows = data.by_supplier || [];
     let html = `<table>
-      <tr><th style="width:28px"></th><th>Szállító</th><th>Számlák</th><th>Tételek</th><th>Aktív idő</th><th>Átlag/tétel</th></tr>`;
+      <tr><th style="width:28px"></th><th>Szállító</th><th>Számlák</th><th>Tételek</th><th>Aktív idő</th><th style="color:#D97706">📦 Pakolás</th><th style="color:#EF4444">🔍 Hiányzóak</th><th>Átlag/tétel</th></tr>`;
 
     if (!rows.length) {
-      html += '<tr><td colspan="6" style="text-align:center;color:#CCC;padding:30px">Nincs adat</td></tr>';
+      html += `<tr><td colspan="${COLS}" style="text-align:center;color:#CCC;padding:30px">Nincs adat</td></tr>`;
     } else {
       rows.forEach((r, i) => {
         const supplierName = r.supplier || '';
@@ -279,9 +286,12 @@ function renderCurrentData() {
           <td><span class="tog" style="color:#4361EE;font-size:11px;font-weight:700">▶</span></td>
           <td>${supplierName || '(nincs szállító)'}</td>
           <td>${r.invoices}</td><td>${r.items}</td>
-          <td>${fmtSec(r.active_seconds)}</td><td>${fmtSec(r.avg_per_item)}</td>
+          <td>${fmtSec(r.active_seconds)}</td>
+          <td style="color:${r.packing_seconds>0?'#D97706':'#CCC'}">${r.packing_seconds>0?fmtSec(r.packing_seconds):'–'}</td>
+          <td style="color:${r.problems_seconds>0?'#EF4444':'#CCC'}">${r.problems_seconds>0?fmtSec(r.problems_seconds):'–'}</td>
+          <td>${fmtSec(r.avg_per_item)}</td>
         </tr>
-        <tr id="detail-${i}" style="display:none"><td colspan="6" style="padding:0">
+        <tr id="detail-${i}" style="display:none"><td colspan="${COLS}" style="padding:0">
           <table class="detail-table">${subHeader(true)}${invoiceSubTable(recs, true)}</table>
         </td></tr>`;
       });
